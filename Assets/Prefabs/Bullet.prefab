@@ -49,7 +49,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tracer: {fileID: 0}
   settings: {fileID: 11400000, guid: e87a95e6808d48943ab3e99dcc196195, type: 2}
-  isActive: 0
+  isActive: 1
 --- !u!135 &6403962706135204397
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -159,6 +159,8 @@ MeshRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -180,6 +182,7 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0

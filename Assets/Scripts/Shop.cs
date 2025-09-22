@@ -10,7 +10,7 @@ public class Shop : MonoBehaviour
         buildManager = BuildManager.instance;
     }
 
-    public void PurchaseStandartTurret()
+    public void PurchaseStandardTurret()
     {
         print("standard Turret purchased");
 
@@ -23,15 +23,15 @@ public class Shop : MonoBehaviour
         buildManager.SetTurretToBuild(buildManager.anotherTurretBasePrefab);
     }
 
-    public void PurchaseTurretBarrel()
+    public void PurchaseTurretBullet()
     {
         print("Turret barrel purchased");
-        buildManager.SetBarrelToBuild(buildManager.standardBarrelPrefab);
+        buildManager.SetBullet(buildManager.standardBullet);
     }
 
-    public void PurchasedAnotherBarrel()
+    public void PurchasedAnotherBullet()
     {
         print("Another barrel purchased");
-        buildManager.SetBarrelToBuild(buildManager.anotherBarrelPrefab);
+        buildManager.SetBullet(buildManager.anotherBulletType);
     }
 }

@@ -18,9 +18,6 @@ public class TurretBaseModule : MonoBehaviour
     public Color hoverColor;
     private Color startColor;
 
-    public GameObject positionOffset; // Offset for turret placement
-
-    private GameObject turret;
 
     private Renderer rend;
 
@@ -45,7 +42,7 @@ public class TurretBaseModule : MonoBehaviour
 
     private void Update()
     {
-        if (target == null || weaponStats == null || barrel == null) return;
+        if (target == null || weaponStats == null || barrel == null || !barrel.isActiveAndEnabled) return;
 
         fireCooldown -= Time.deltaTime;
         if (fireCooldown <= 0f)
@@ -93,33 +90,25 @@ public class TurretBaseModule : MonoBehaviour
     private void OnMouseEnter()
     {
         // if theres no barrel to build or the mouse is over a UI element, do nothing
-        if (buildManager.GetBarrelToBuild() == null || EventSystem.current.IsPointerOverGameObject()) return;
+        if (buildManager.GetBulletType() == null || EventSystem.current.IsPointerOverGameObject()) return;
 
         rend.material.color = hoverColor;
     }
 
     private void OnMouseDown()
     {
-        if (turret != null || buildManager.GetBarrelToBuild() == null || EventSystem.current.IsPointerOverGameObject())
+        if (buildManager.GetBulletType() == null || EventSystem.current.IsPointerOverGameObject())
         {
-            Debug.Log("Cannot build here! Node already has a barrel. or get barrel to build is null");
+            Debug.Log("Cannot build here! Node already has a bullet. or get bullet type is null");
             return;
         }
 
         //build turretBase
-        GameObject turretToBuild = buildManager.GetBarrelToBuild();
-        turret = Instantiate(turretToBuild, positionOffset.transform.position, Quaternion.identity, positionOffset.transform);
+        barrel.SetBulletType(buildManager.GetBulletType());
 
-        TurretBarrelModule newBarrel = turret.GetComponent<TurretBarrelModule>();
-
-        if (newBarrel != null)
+        if (barrel != null)
         {
-            barrel = newBarrel; // save reference to this base
-
-            if(parentNode != null)
-            {
-                parentNode.partToRotate = barrel.transform.Find("PartToRotate");
-            }
+            parentNode.SetBarrelActive(true);
         }
         else
         {

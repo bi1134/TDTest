@@ -5,7 +5,7 @@ using System.Collections.Generic;
 public class BulletProjectile : MonoBehaviour
 {
     [SerializeField] public GameObject tracer;
-    public BulletPropertiesSO settings;
+    [SerializeField] private BulletPropertiesSO settings;
 
     private int bounceRemaining;
     public bool isActive;
@@ -70,14 +70,14 @@ public class BulletProjectile : MonoBehaviour
         }
     }
 
-    public void Initialize(Vector3 direction, float bulletSpeed, float upwardForce, float lifeTime)
+    public void Initialize(Vector3 direction, float bulletSpeed, float upwardForce)
     {
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         rb.AddForce(direction.normalized * bulletSpeed, ForceMode.Impulse);
         rb.AddForce(Vector3.up * upwardForce, ForceMode.Impulse);
 
-        StartCoroutine(DestroySelf(lifeTime));
+        StartCoroutine(DestroySelf(settings.maxLifeTime));
     }
 
     private void FixedUpdate()
@@ -118,7 +118,6 @@ public class BulletProjectile : MonoBehaviour
         {
             contact = collision.contacts[0];
             hitPoint = contact.point;
-            print("contact tag " + collision.gameObject.tag);
             TryExplodeOrDeactivate(hitPoint);
         }
         /*

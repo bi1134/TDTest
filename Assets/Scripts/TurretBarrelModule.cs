@@ -5,7 +5,7 @@ public class TurretBarrelModule : MonoBehaviour
 {
     [SerializeField] private BulletPropertiesSO bulletSettings;
     [SerializeField] private Transform firePoint;
-    [SerializeField] private GameObject bulletPrefab;
+    [SerializeField] private BulletProjectile bulletPrefab;
     [SerializeField] private ParticleSystem muzzleFlash;
     [SerializeField] private AudioClip fireClip;
     [SerializeField] private AudioSource audioSource;
@@ -51,21 +51,19 @@ public class TurretBarrelModule : MonoBehaviour
 
         foreach (var dir in directions)
         {
-            GameObject bulletObj = Instantiate(
+            var bulletObj = Instantiate(
                 bulletPrefab,
                 firePoint.position,
                 Quaternion.LookRotation(dir)
             );
 
-            if (bulletObj.TryGetComponent(out BulletProjectile bullet))
+            if (bulletObj != null)
             {
-                bullet.settings = bulletSettings;
-                bullet.SetShooter(this.gameObject);
-                bullet.Initialize(
+                bulletObj.SetShooter(this.gameObject);
+                bulletObj.Initialize(
                     dir,
                     weaponStats.bulletSpeed,
-                    weaponStats.upwardForce,    
-                    bulletSettings.maxLifeTime//was using from weaponStats, but it should be from bulletSettings
+                    weaponStats.upwardForce
                 );
             }
         }
@@ -81,5 +79,10 @@ public class TurretBarrelModule : MonoBehaviour
             audioSource.pitch = Random.Range(0.95f, 1.05f);
             audioSource.PlayOneShot(fireClip);
         }
+    }
+
+    public void SetBulletType(BulletProjectile bulletType)
+    {
+        bulletPrefab = bulletType;
     }
 }

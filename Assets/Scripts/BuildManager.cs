@@ -5,12 +5,12 @@ public class BuildManager : MonoBehaviour
     public static BuildManager instance;
 
     public GameObject standardTurretBasePrefab;
-    public GameObject standardBarrelPrefab;
+    public BulletProjectile standardBullet;
     private GameObject turretBaseToBuild;
-    private GameObject barrelToBuild;
+    private BulletProjectile bulletType;
 
     public GameObject anotherTurretBasePrefab;
-    public GameObject anotherBarrelPrefab;
+    public BulletProjectile anotherBulletType;
 
     public void Awake()
     {
@@ -27,9 +27,9 @@ public class BuildManager : MonoBehaviour
         turretBaseToBuild = turretBase;
     }
 
-    public void SetBarrelToBuild(GameObject barrel)
+    public void SetBullet(BulletProjectile bullet)
     {
-        barrelToBuild = barrel;
+        bulletType = bullet;
     }
 
     public GameObject GetTurretBaseToBuild()
@@ -37,8 +37,8 @@ public class BuildManager : MonoBehaviour
         return turretBaseToBuild;
     }
     
-    public GameObject GetBarrelToBuild()
+    public BulletProjectile GetBulletType()
     {
-        return barrelToBuild;
+        return bulletType;
     }
 }

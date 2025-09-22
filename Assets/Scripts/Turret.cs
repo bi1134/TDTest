@@ -5,6 +5,7 @@ public class Turret : MonoBehaviour
     [Header("Parts")]
     [SerializeField] private TurretBaseModule baseModule;
     [SerializeField] public Transform partToRotate;
+    [SerializeField] public TurretBarrelModule turretBarrel;
 
     [Header("Targeting")]
     public float range = 15f;
@@ -12,6 +13,12 @@ public class Turret : MonoBehaviour
     public string enemyTag = "Enemy";
 
     private Transform target;
+
+    //awake, hide the barrel until we bought a bullet type
+    private void Awake()
+    {
+        SetBarrelActive(false);
+    }
 
     private void Start()
     {
@@ -53,10 +60,18 @@ public class Turret : MonoBehaviour
 
         target = (nearest != null && shortest <= range) ? nearest.transform : null;
     }
+    public void SetBarrelActive(bool isActive)
+    {
+        if (turretBarrel != null)
+        {
+            turretBarrel.gameObject.SetActive(isActive);
+        }
+    }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, range);
     }
+
 }
