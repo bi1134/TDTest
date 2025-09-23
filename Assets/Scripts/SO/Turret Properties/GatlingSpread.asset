@@ -9,19 +9,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee8f6105b026caf49bbe6b96086ab143, type: 3}
-  m_Name: Burst
+  m_Script: {fileID: 11500000, guid: 6e597b8339f2f3d49b99f821c6ab543e, type: 3}
+  m_Name: GatlingSpread
   m_EditorClassIdentifier: 
-  weaponName: 1
-  damage: 2
-  fireRate: 1
-  bulletsPerTap: 0
-  bulletSpeed: 10
-  bulletLifetime: 2
+  weaponName: 0
+  damage: 1
+  fireRate: 15
+  bulletsPerTap: 1
+  bulletSpeed: 20
+  bulletLifetime: 1
   spread: 0
-  spreadX: 0
+  spreadX: 14.5
   spreadY: 0
   upwardForce: 0
-  fireMode: 2
-  burstCount: 3
+  fireMode: 0
+  burstCount: 2
   burstInterval: 0.05

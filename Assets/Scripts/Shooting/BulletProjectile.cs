@@ -2,6 +2,15 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 
+public struct ImpactPayload
+{
+    public float aoeRadius;
+    public float aoeForce;
+    public LayerMask aoeMask;
+    public float falloffExponent;
+    public bool explodeOnTimeout;
+}
+
 public class BulletProjectile : MonoBehaviour
 {
     [SerializeField] public GameObject tracer;
@@ -12,6 +21,10 @@ public class BulletProjectile : MonoBehaviour
     private Rigidbody rb;
     private GameObject shooterGameObject;
     private float baseDamage;
+    private ImpactPayload impactPayload;
+    private bool hasPayload;           
+    private bool HasAOE => hasPayload && impactPayload.aoeRadius > 0f;
+
 
     private void OnEnable()
     {
@@ -70,15 +83,43 @@ public class BulletProjectile : MonoBehaviour
         }
     }
 
-    public void Initialize(Vector3 direction, float bulletSpeed, float upwardForce)
+    public void Initialize(
+    Vector3 direction,
+    float bulletSpeed,
+    float upwardForce,
+    float damage,
+    ImpactPayload? payload = null,     // caller can pass null
+    bool useGravity = false,
+    Vector3? velocityOverride = null
+    )
     {
+        baseDamage = damage;
+        hasPayload = payload.HasValue;            // set the flag
+        impactPayload = payload ?? default;          // safe default (all zeros)
+        rb.useGravity = useGravity;
+
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
-        rb.AddForce(direction.normalized * bulletSpeed, ForceMode.Impulse);
-        rb.AddForce(Vector3.up * upwardForce, ForceMode.Impulse);
+
+        if (velocityOverride.HasValue)
+            rb.linearVelocity = velocityOverride.Value;
+        else
+        {
+            rb.AddForce(direction.normalized * bulletSpeed, ForceMode.Impulse);
+            rb.AddForce(Vector3.up * upwardForce, ForceMode.Impulse);
+        }
 
         StartCoroutine(DestroySelf(settings.maxLifeTime));
     }
+
+    public void Initialize(Vector3 dir, float speed, float up, float dmg)
+     => Initialize(dir, speed, up, dmg, null, false, null);
+
+    public void Initialize(Vector3 dir, float speed, float up, float dmg, ImpactPayload payload)
+        => Initialize(dir, speed, up, dmg, payload, false, null);
+
+    public void Initialize(Vector3 dir, float speed, float up, float dmg, bool useGravity)
+        => Initialize(dir, speed, up, dmg, null, useGravity, null);
 
     private void FixedUpdate()
     {
@@ -104,7 +145,13 @@ public class BulletProjectile : MonoBehaviour
 
         // Force deactivate if bullet still exists
         if (isActive)
-            TryExplodeOrDeactivate();
+        {
+            // Grenade-style behavior if requested by the turret
+            if (impactPayload.explodeOnTimeout && HasAOE)
+                Explode(transform.position);
+            else
+                Deactivate();
+        }
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -116,39 +163,20 @@ public class BulletProjectile : MonoBehaviour
         Vector3 hitNormal = contact.normal;
         if (collision.gameObject.CompareTag("Enemy"))
         {
-            contact = collision.contacts[0];
-            hitPoint = contact.point;
-            TryExplodeOrDeactivate(hitPoint);
-        }
-        /*
-        GameObject fx = ObjectPooler.SpawnFromPool("BulletHit", hitPoint, Quaternion.identity);
-        if (fx.TryGetComponent(out PooledEffect pooledFx))
-        {
-            pooledFx.SetPoolTag("BulletHit");
-        }
-        */
-        /*
-        if (collision.collider.TryGetComponent(out HitBox target))
-        {
-            if (target.healthSystem == shooterHealth)
-                return;
-
-            float damageMultiplier = 1f;
-
-            if (target.gameObject.layer == shooterGameObject.layer)
+            if (HasAOE)
             {
-                damageMultiplier = 0.3f; // 30% damage to teammates
+                Explode(hitPoint);
             }
-
-            target.TakeDamage(baseDamage, rb.linearVelocity.normalized, damageMultiplier);
-
-            if (settings.bulletType == BulletType.Explosive)
+            else
             {
-                Explode(contact.point);
-                return;
+                if (collision.gameObject.TryGetComponent(out Enemy enemy))
+                {
+                    enemy.TakeDamage(baseDamage);
+                }
+                Deactivate();
             }
+            return;
         }
-        */
 
         if (bounceRemaining > 0)
         {
@@ -157,7 +185,11 @@ public class BulletProjectile : MonoBehaviour
         }
         else
         {
-            TryExplodeOrDeactivate(hitPoint);
+            //if this shot is AOE capable, explode on impact or else just deactivate
+            if (HasAOE)
+                Explode(hitPoint);
+            else
+                Deactivate();
         }
     }
 
@@ -165,7 +197,10 @@ public class BulletProjectile : MonoBehaviour
     {
         if (bounceRemaining <= 0)
         {
-            TryExplodeOrDeactivate(transform.position);
+            if (HasAOE) 
+                Explode(transform.position);
+            else 
+                Deactivate();
             return;
         }
 
@@ -193,35 +228,41 @@ public class BulletProjectile : MonoBehaviour
         }
     }
 
-    private void Explode(Vector3 point)
+    private void Explode(Vector3 center)
     {
-        /*
-        Collider[] enemies = Physics.OverlapSphere(point, settings.explosionRadius, settings.explosionMask);
+        float radius = Mathf.Max(0f, impactPayload.aoeRadius);
 
-        foreach (Collider enemy in enemies)
+        // Safety check
+        if (radius <= 0f)
         {
-            if (enemy.TryGetComponent(out HitBox target))
-            {
-                if (target.healthSystem == shooterHealth)
-                    continue;
-
-                Vector3 direction = (enemy.transform.position - point).normalized;
-                target.TakeDamage(baseDamage, direction);
-            }
-
-            if (enemy.TryGetComponent<Rigidbody>(out var enemyRb))
-            {
-                enemyRb.AddExplosionForce(settings.explosionForce, point, settings.explosionRadius, 0.1f, ForceMode.Impulse);
-            }
+            Deactivate();
+            return;
         }
 
-        GameObject fx = ObjectPooler.SpawnFromPool("Explosion", point, Quaternion.identity);
+        // Collect targets
+        Collider[] hits = Physics.OverlapSphere(center, radius, impactPayload.aoeMask);
 
-        if (fx.TryGetComponent(out PooledEffect pooledFx))
+        float falloffExponent = Mathf.Max(0.01f, impactPayload.falloffExponent);
+
+        foreach (var c in hits)
         {
-            pooledFx.SetPoolTag("Explosion");
+            // Damage
+            if (c.TryGetComponent(out Enemy enemy))
+            {
+                float distance = Vector3.Distance(c.transform.position, center);
+                float t = Mathf.Clamp01(distance / radius);           // normalized distance (0 at center, 1 at edge)
+                float falloff = 1f - Mathf.Pow(t, falloffExponent); //full damage at center fade to 0 at edge
+
+                float damage = baseDamage * falloff; // baseDamage should come from the turret
+                enemy.TakeDamage(damage);
+            }
+
+            // Physics push (optional)
+            if (impactPayload.aoeForce > 0f && c.attachedRigidbody != null)
+            {
+                c.attachedRigidbody.AddExplosionForce(impactPayload.aoeForce, center, radius, 0.1f, ForceMode.Impulse);
+            }
         }
-        */
         Deactivate();
     }
 
@@ -261,59 +302,7 @@ public class BulletProjectile : MonoBehaviour
     public void SetShooter(GameObject shooter)
     {
         shooterGameObject = shooter;
-        //shooterHealth = shooter.GetComponentInParent<HealthSystem>();
-        baseDamage = 10f;
-        /*
-        if (shooter.TryGetComponent<WeaponProjectile>(out var weapon))
-        {
-            baseDamage = weapon.weaponProperties.damage;
-        }
-        else if (shooter.TryGetComponent<Enemy>(out var enemy))
-        {
-            baseDamage = enemy.enemyStats.baseStats.baseDamage;
-        }
-        */
-        // skip self-collision only if bulletDrop is 0
-        if (settings.bulletDrop == 0f)
-        {
-            Collider[] bulletColliders = GetComponentsInChildren<Collider>(true);
-
-            // gather all colliders from entire hierarchy of the shooter, including inactive ones
-            List<Collider> shooterColliders = new List<Collider>();
-
-            // include all colliders from all child objects
-            shooterColliders.AddRange(shooter.GetComponentsInChildren<Collider>(true));
-
-            // include CharacterController collider if present
-            CharacterController cc = shooter.GetComponent<CharacterController>();
-            if (cc != null)
-            {
-                Collider controllerCol = cc.GetComponent<Collider>();
-                if (controllerCol != null)
-                    shooterColliders.Add(controllerCol);
-            }
-
-            foreach (var bulletCol in bulletColliders)
-            {
-                foreach (var shooterCol in shooterColliders)
-                {
-                    if (bulletCol != null && shooterCol != null)
-                        Physics.IgnoreCollision(bulletCol, shooterCol, true);
-                }
-            }
-        }
+        //tbh this func doesn't do anything right now because the bullet only interact with Enemy tagged and the enemy layer
     }
 
-
-    private void TryExplodeOrDeactivate(Vector3? explosionPoint = null)
-    {
-        if (settings.bulletType == BulletType.Explosive)
-        {
-            Explode(explosionPoint ?? transform.position);
-        }
-        else
-        {
-            Deactivate();
-        }
-    }
 }

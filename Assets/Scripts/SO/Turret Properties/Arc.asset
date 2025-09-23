@@ -9,19 +9,28 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ee8f6105b026caf49bbe6b96086ab143, type: 3}
-  m_Name: GatlingSpread
+  m_Script: {fileID: 11500000, guid: 6e597b8339f2f3d49b99f821c6ab543e, type: 3}
+  m_Name: Arc
   m_EditorClassIdentifier: 
   weaponName: 0
-  damage: 1
-  fireRate: 15
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1
+  damage: 10
+  fireRate: 0.5
   bulletsPerTap: 1
-  bulletSpeed: 20
-  bulletLifetime: 1
-  spread: 0
-  spreadX: 14.5
-  spreadY: 0
+  bulletSpeed: 10
   upwardForce: 0
-  fireMode: 0
+  spread: 0
+  spreadX: 0
+  spreadY: 0
+  fireMode: 4
   burstCount: 3
   burstInterval: 0.05
+  explosionRadius: 0
+  explosionForce: 0
+  explosionMask:
+    serializedVersion: 2
+    m_Bits: 0
+  explosionFalloffExponent: 0
+  explodeOnTimeout: 0

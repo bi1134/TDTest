@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public static class SpreadHelpers
+public static class ShootHelpers
 {
     private const float EPS = 0.0001f;
 
@@ -13,6 +13,7 @@ public static class SpreadHelpers
     ///   * spreadX = 0, spreadY > 0 -> vertical line
     ///   * both > 0 -> plus or X depending on axisRotationDeg (0 = plus, 45 = X)
     /// </summary>
+    #region spread helpers
     public static List<Vector3> GeneratePelletDirections(
         Vector3 baseDir,
         int bulletsPerTap,
@@ -157,4 +158,116 @@ public static class SpreadHelpers
         float tan = Mathf.Tan(Mathf.Deg2Rad * Mathf.Max(0f, extentDeg));
         return (forward + axis * (tMinus1To1 * tan)).normalized;
     }
+    #endregion
+
+    #region balistic helpers
+    // Ballistic solver (speed + gravity -> initial velocity). Returns false if target unreachable.
+    public static bool TrySolveBallisticArc(
+     Vector3 origin, Vector3 target, float speed, float gravityY, bool highArc, out Vector3 velocity)
+    {
+        Vector3 delta = target - origin;
+        Vector3 deltaXZ = new Vector3(delta.x, 0f, delta.z);
+        float x = deltaXZ.magnitude;
+        float y = delta.y;
+        float g = Mathf.Abs(gravityY);
+        float v2 = speed * speed;
+
+        float under = v2 * v2 - g * (g * x * x + 2f * y * v2);
+        if (under < 0f) { velocity = Vector3.zero; return false; }
+
+        float root = Mathf.Sqrt(under);
+        float angle = Mathf.Atan((v2 + (highArc ? root : -root)) / (g * x));
+
+        Vector3 dirXZ = x > 1e-4f ? deltaXZ.normalized : Vector3.forward;
+        velocity = dirXZ * (speed * Mathf.Cos(angle)) + Vector3.up * (speed * Mathf.Sin(angle));
+        return true;
+    }
+
+    public static Vector3 SolveBallisticByTime(Vector3 origin, Vector3 target, float T, Vector3 gravity)
+    {
+        return (target - origin - 0.5f * gravity * (T * T)) / T;
+    }
+
+    public static bool TrySolveBallisticWithApex(
+    Vector3 origin, Vector3 target, float apexY, float gravityMag, out Vector3 velocity)
+    {
+        velocity = Vector3.zero;
+        float y0 = origin.y, yT = target.y;
+        float minApex = Mathf.Max(y0, yT) + 0.01f;
+        if (apexY < minApex) apexY = minApex;
+
+        float vy0 = Mathf.Sqrt(Mathf.Max(0f, 2f * gravityMag * (apexY - y0)));
+        float tUp = vy0 / gravityMag;
+
+        float drop = Mathf.Max(0f, apexY - yT);
+        float tDown = Mathf.Sqrt(2f * drop / gravityMag);
+
+        float tTotal = tUp + tDown;
+
+        Vector3 delta = target - origin;
+        Vector3 deltaXZ = new Vector3(delta.x, 0f, delta.z);
+        float xz = deltaXZ.magnitude;
+        if (tTotal <= 1e-4f) return false;
+
+        float vx = xz / tTotal;
+        Vector3 dirXZ = xz > 1e-4f ? deltaXZ.normalized : Vector3.forward;
+
+        velocity = dirXZ * vx + Vector3.up * vy0;
+        return true;
+    }
+
+    public static bool PathIsClear(
+    Vector3 origin,
+    Vector3 v0,
+    Vector3 gravity,
+    float projectileRadius,
+    float totalTime,
+    int steps,
+    LayerMask obstacleMask,
+    out RaycastHit hit)
+    {
+        Vector3 prev = origin;
+        for (int i = 1; i <= steps; i++)
+        {
+            float t = totalTime * i / steps;
+            Vector3 p = origin + v0 * t + 0.5f * gravity * (t * t);
+            Vector3 seg = p - prev;
+            float dist = seg.magnitude;
+            if (dist > 0f && Physics.SphereCast(prev, projectileRadius, seg.normalized, out hit, dist, obstacleMask))
+                return false;
+            prev = p;
+        }
+        hit = default;
+        return true;
+    }
+
+    public static float LaunchAngleDeg(Vector3 v0)
+    {
+        float vh = new Vector2(v0.x, v0.z).magnitude;
+        return Mathf.Rad2Deg * Mathf.Atan2(v0.y, vh);
+    }
+
+    // Build a velocity that GUARANTEES launch angle >= thetaMinDeg by picking a sufficient time-of-flight.
+    public static Vector3 SolveBallisticByMinAngle(
+        Vector3 origin,
+        Vector3 target,
+        float thetaMinDeg,
+        float baseTime,     // your "feel" time; we'll raise it if needed to meet the angle
+        Vector3 gravity
+    )
+    {
+        Vector3 d = target - origin;
+        float x = new Vector2(d.x, d.z).magnitude; // horizontal distance
+        float dy = d.y;
+        float g = gravity.magnitude;               // assume downward gravity
+        float tan = Mathf.Tan(thetaMinDeg * Mathf.Deg2Rad);
+
+        // From angle constraint: (dy + 0.5*g*T^2) / x >= tan(thetaMin)  =>  T >= sqrt( 2*(x*tan - dy)/g )
+        float rhs = x * tan - dy;
+        float Tmin = (rhs <= 0f) ? 0f : Mathf.Sqrt(2f * rhs / g);
+        float T = Mathf.Max(baseTime, Tmin);
+
+        return SolveBallisticByTime(origin, target, T, gravity);
+    }
+    #endregion
 }

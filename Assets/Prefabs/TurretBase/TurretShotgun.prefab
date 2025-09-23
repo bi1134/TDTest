@@ -48,7 +48,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bulletSettings: {fileID: 11400000, guid: 94dd6652ff2bdce4f869a7ee42b643e7, type: 2}
   firePoint: {fileID: 4409176648107941456}
-  bulletPrefab: {fileID: 672759042890842251, guid: 684e928afb577464595ad37a82b39b80, type: 3}
+  bulletPrefab: {fileID: 6279043409760583730, guid: 684e928afb577464595ad37a82b39b80, type: 3}
   muzzleFlash: {fileID: 0}
   fireClip: {fileID: 0}
   audioSource: {fileID: 0}
@@ -263,7 +263,6 @@ MonoBehaviour:
   target: {fileID: 0}
   parentNode: {fileID: -7834384760599585665}
   hoverColor: {r: 0.3886792, g: 0.38647914, b: 0.38647914, a: 0}
-  positionOffset: {fileID: 7936528475150311248}
 --- !u!65 &2704609498545071977
 BoxCollider:
   m_ObjectHideFlags: 0

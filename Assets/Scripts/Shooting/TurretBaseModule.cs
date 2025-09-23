@@ -5,7 +5,7 @@ using UnityEngine.EventSystems;
 public class TurretBaseModule : MonoBehaviour
 {
     [Header("Base Stats")]
-    public WeaponPropertiesSO weaponStats;
+    public TurretPropertiesSO weaponStats;
 
     [SerializeField] private TurretBarrelModule barrel;
 
@@ -71,6 +71,13 @@ public class TurretBaseModule : MonoBehaviour
             case FireMode.Burst:
                 StartCoroutine(FireBurst());
                 break;
+            case FireMode.Pulse:
+                barrel.FireAOE(target.position, weaponStats);
+                break;
+
+            case FireMode.Arc:
+                barrel.FireArc(target.position, weaponStats);
+                break;
         }
     }
 
@@ -90,31 +97,31 @@ public class TurretBaseModule : MonoBehaviour
     private void OnMouseEnter()
     {
         // if theres no barrel to build or the mouse is over a UI element, do nothing
-        if (buildManager.GetBulletType() == null || EventSystem.current.IsPointerOverGameObject()) return;
+        if (buildManager.GetBulletType() == null || EventSystem.current.IsPointerOverGameObject() || barrel.isActiveAndEnabled) return;
 
         rend.material.color = hoverColor;
     }
 
     private void OnMouseDown()
     {
-        if (buildManager.GetBulletType() == null || EventSystem.current.IsPointerOverGameObject())
+        if (EventSystem.current.IsPointerOverGameObject())
         {
-            Debug.Log("Cannot build here! Node already has a bullet. or get bullet type is null");
+            return;
+        }
+
+        var bulletType = buildManager.GetBulletType();
+
+        if (bulletType == null)
+        {
+            Debug.Log("Cannot install ammo: projectile is null");
             return;
         }
 
         //build turretBase
         barrel.SetBulletType(buildManager.GetBulletType());
 
-        if (barrel != null)
-        {
-            parentNode.SetBarrelActive(true);
-        }
-        else
-        {
-            Debug.LogWarning("Spawned turret has no TurretBarrelModule!");
-        }
-
+        barrel.SetBulletType(bulletType);
+        parentNode.SetBarrelActive(true);
     }
 
     private void OnMouseExit()

@@ -4,7 +4,7 @@ using System;
 public abstract class WeaponBase : MonoBehaviour
 {
     [Header("Weapon Data")]
-    public WeaponPropertiesSO weaponProperties;
+    public TurretPropertiesSO weaponProperties;
     public Transform bulletSpawnPosition;
     public RuntimeAnimatorController animator;
     public event Action OnReloadStarted;
