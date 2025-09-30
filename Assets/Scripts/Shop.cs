@@ -2,6 +2,12 @@ using UnityEngine;
 
 public class Shop : MonoBehaviour
 {
+    public TurretBaseBlueprint standardTurret;
+    public TurretBaseBlueprint gatlingTurret;
+
+    public BulletBlueprint standardBullet;
+    public BulletBlueprint anotherBullet;
+
     private BuildManager buildManager;
 
     //assign form start  because instance is awake
@@ -10,28 +16,28 @@ public class Shop : MonoBehaviour
         buildManager = BuildManager.instance;
     }
 
-    public void PurchaseStandardTurret()
+    public void SelectStandardTurret()
     {
         print("standard Turret purchased");
 
-        buildManager.SetTurretToBuild(buildManager.standardTurretBasePrefab);
+        buildManager.SelectTurretToBuild(standardTurret);
     }
 
-    public void PurchaseAnotherTurret()
+    public void SelectAnotherTurret()
     {
         print("Another Turret purchased");
-        buildManager.SetTurretToBuild(buildManager.anotherTurretBasePrefab);
+        buildManager.SelectTurretToBuild(gatlingTurret);
     }
 
-    public void PurchaseTurretBullet()
+    public void SelectTurretBullet()
     {
         print("Turret barrel purchased");
-        buildManager.SetBullet(buildManager.standardBullet);
+        buildManager.SelectBullet(standardBullet);
     }
 
-    public void PurchasedAnotherBullet()
+    public void SelectAnotherBullet()
     {
         print("Another barrel purchased");
-        buildManager.SetBullet(buildManager.anotherBulletType);
+        buildManager.SelectBullet(anotherBullet);
     }
 }

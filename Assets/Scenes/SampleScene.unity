@@ -657,7 +657,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2131678113}
         m_TargetAssemblyTypeName: Shop, Assembly-CSharp
-        m_MethodName: PurchasedAnotherBullet
+        m_MethodName: SelectAnotherBullet
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2291,7 +2291,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2131678113}
         m_TargetAssemblyTypeName: Shop, Assembly-CSharp
-        m_MethodName: PurchaseStandardTurret
+        m_MethodName: SelectStandardTurret
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2445,7 +2445,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2131678113}
         m_TargetAssemblyTypeName: Shop, Assembly-CSharp
-        m_MethodName: PurchaseAnotherTurret
+        m_MethodName: SelectAnotherTurret
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3226,7 +3226,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 2131678113}
         m_TargetAssemblyTypeName: Shop, Assembly-CSharp
-        m_MethodName: PurchaseTurretBullet
+        m_MethodName: SelectTurretBullet
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3395,6 +3395,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 365fbfb76b1ec224ab237be01cd0d107, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  standardTurret:
+    prefab: {fileID: 8195699246678471509, guid: fcb0800d455aca54fac21845ba021f3e, type: 3}
+    cost: 100
+  gatlingTurret:
+    prefab: {fileID: 8195699246678471509, guid: 5becff99af66c314a96455b6f4f96e3a, type: 3}
+    cost: 200
+  standardBullet:
+    bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
+    cost: 0
+  anotherBullet:
+    bulletPrefab: {fileID: 6279043409760583730, guid: 684e928afb577464595ad37a82b39b80, type: 3}
+    cost: 0
 --- !u!1 &2134143107
 GameObject:
   m_ObjectHideFlags: 0

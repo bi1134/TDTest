@@ -97,7 +97,7 @@ public class TurretBaseModule : MonoBehaviour
     private void OnMouseEnter()
     {
         // if theres no barrel to build or the mouse is over a UI element, do nothing
-        if (buildManager.GetBulletType() == null || EventSystem.current.IsPointerOverGameObject() || barrel.isActiveAndEnabled) return;
+        if (!buildManager.HasBulletSelection || EventSystem.current.IsPointerOverGameObject() || barrel.isActiveAndEnabled) return;
 
         rend.material.color = hoverColor;
     }
@@ -105,23 +105,24 @@ public class TurretBaseModule : MonoBehaviour
     private void OnMouseDown()
     {
         if (EventSystem.current.IsPointerOverGameObject())
-        {
             return;
-        }
 
-        var bulletType = buildManager.GetBulletType();
-
-        if (bulletType == null)
+        if (!buildManager.HasBulletSelection)
         {
             Debug.Log("Cannot install ammo: projectile is null");
             return;
         }
 
-        //build turretBase
-        barrel.SetBulletType(buildManager.GetBulletType());
+        buildManager.InstallBullet(this);
+    }
 
-        barrel.SetBulletType(bulletType);
-        parentNode.SetBarrelActive(true);
+    public void SetBulletType(BulletBlueprint bulletType)
+    {
+        if (!barrel.isActiveAndEnabled || !barrel.gameObject.activeSelf)
+        {
+            barrel.SetBulletType(bulletType.bulletPrefab);
+            parentNode.SetBarrelActive(true);
+        }
     }
 
     private void OnMouseExit()

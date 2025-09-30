@@ -4,13 +4,11 @@ public class BuildManager : MonoBehaviour
 {
     public static BuildManager instance;
 
-    public GameObject standardTurretBasePrefab;
-    public BulletProjectile standardBullet;
-    private GameObject turretBaseToBuild;
-    private BulletProjectile bulletType;
+    private TurretBaseBlueprint turretBaseToBuild;
+    private BulletBlueprint bulletType;
 
-    public GameObject anotherTurretBasePrefab;
-    public BulletProjectile anotherBulletType;
+    public bool HasTurretSelection { get { return turretBaseToBuild != null; } }
+    public bool HasBulletSelection { get { return bulletType != null; } }
 
     public void Awake()
     {
@@ -22,23 +20,25 @@ public class BuildManager : MonoBehaviour
         instance = this;
     }
 
-    public void SetTurretToBuild(GameObject turretBase)
+    public void SelectTurretToBuild(TurretBaseBlueprint turretBase)
     {
         turretBaseToBuild = turretBase;
     }
 
-    public void SetBullet(BulletProjectile bullet)
+    public void SelectBullet(BulletBlueprint bullet)
     {
         bulletType = bullet;
     }
 
-    public GameObject GetTurretBaseToBuild()
+    public void BuildTurretOn(Node node)
     {
-        return turretBaseToBuild;
+        var turret = Instantiate(turretBaseToBuild.prefab, node.GetBuildPosition(), Quaternion.identity, node.transform);
+        node.turretBase = turret;
     }
-    
-    public BulletProjectile GetBulletType()
+
+    public void InstallBullet(TurretBaseModule turretBase)
     {
-        return bulletType;
+        if(turretBase == null || bulletType == null) return;
+        turretBase.SetBulletType(bulletType);
     }
 }
