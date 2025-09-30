@@ -6,17 +6,18 @@ public class Node : MonoBehaviour
     public Color hoverColor;
     private Color startColor;
 
-    [SerializeField] private GameObject positionOffset; // Offset for turret placement
+    public GameObject positionOffset; // Offset for turret placement
 
+    [SerializeField] private Renderer rend;
+    [Header("Optional")]
     public GameObject turretBase;
 
-    private Renderer rend;
 
     private BuildManager buildManager;
 
+
     private void Start()
     {
-        rend = GetComponent<Renderer>();
         startColor = rend.material.color; // Store the original color
 
         buildManager = BuildManager.instance;
@@ -25,9 +26,12 @@ public class Node : MonoBehaviour
     private void OnMouseEnter()
     {
         //if theres nothing to build or the mouse is over a UI element, do nothing
-        if (!buildManager.HasTurretSelection || EventSystem.current.IsPointerOverGameObject()) return;
+        if (turretBase != null || !buildManager.HasTurretSelection || EventSystem.current.IsPointerOverGameObject()) return;
 
-        rend.material.color = hoverColor;   
+        if(buildManager.HasEnoughMoney)
+        rend.material.color = hoverColor;
+        else
+        rend.material.color = Color.red;
     }
 
     private void OnMouseDown()
@@ -38,7 +42,7 @@ public class Node : MonoBehaviour
             return;
         }
 
-        buildManager.BuildTurretOn(this);
+        buildManager.TryBuildTurretOn(this);
     }
 
     private void OnMouseExit()

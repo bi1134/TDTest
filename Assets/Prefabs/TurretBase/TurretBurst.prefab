@@ -46,7 +46,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d179a02b0dd2e304699e219ab14f0fe5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bulletSettings: {fileID: 11400000, guid: e87a95e6808d48943ab3e99dcc196195, type: 2}
   firePoint: {fileID: 4249947712785460157}
   bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
   muzzleFlash: {fileID: 0}
@@ -252,7 +251,7 @@ BoxCollider:
   m_Enabled: 1
   serializedVersion: 3
   m_Size: {x: 0.6, y: 0.05, z: 0.6}
-  m_Center: {x: 0, y: 0.05, z: 0}
+  m_Center: {x: 0, y: 0.025, z: 0}
 --- !u!1 &5628310799507856219
 GameObject:
   m_ObjectHideFlags: 0
@@ -424,7 +423,7 @@ Transform:
   m_GameObject: {fileID: 6606203468786333734}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.05, z: 0}
+  m_LocalPosition: {x: 0, y: 0.025, z: 0}
   m_LocalScale: {x: 0.6, y: 0.05, z: 0.6}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -511,7 +510,7 @@ Transform:
   m_GameObject: {fileID: 7936528475150311248}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.1, z: 0}
+  m_LocalPosition: {x: 0, y: 0.03, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:

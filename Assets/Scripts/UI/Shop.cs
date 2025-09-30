@@ -20,13 +20,13 @@ public class Shop : MonoBehaviour
     {
         print("standard Turret purchased");
 
-        buildManager.SelectTurretToBuild(standardTurret);
+        buildManager.SelectTurret(standardTurret);
     }
 
     public void SelectAnotherTurret()
     {
         print("Another Turret purchased");
-        buildManager.SelectTurretToBuild(gatlingTurret);
+        buildManager.SelectTurret(gatlingTurret);
     }
 
     public void SelectTurretBullet()

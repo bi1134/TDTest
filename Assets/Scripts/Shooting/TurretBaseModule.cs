@@ -113,7 +113,7 @@ public class TurretBaseModule : MonoBehaviour
             return;
         }
 
-        buildManager.InstallBullet(this);
+        buildManager.TryInstallBullet(this);
     }
 
     public void SetBulletType(BulletBlueprint bulletType)
