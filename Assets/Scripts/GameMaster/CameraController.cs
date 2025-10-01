@@ -1,12 +1,12 @@
 using Unity.Cinemachine;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
 public class CameraController : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private CinemachineCamera cinemachineCamera;
     [SerializeField] private GameInputs gameInput;
+    [SerializeField] private LayerMask groundMask;
 
     [Header("Camera Settings")]
     public float moveSpeed = 50f;
@@ -31,10 +31,12 @@ public class CameraController : MonoBehaviour
     [SerializeField] private ZoomMode zoomMode = ZoomMode.FOV;
 
     // Internal
+    private Vector3 lastPosition;
     private CinemachineFollow followComponent;
     private Vector3 followOffset;
     private float targetFOV = 60f;
     float scroll = 0;
+
 
     private void Start()
     {
@@ -74,7 +76,7 @@ public class CameraController : MonoBehaviour
 
     private void HandleEdgeScrolling()
     {
-        Vector2 mousePos = Mouse.current.position.ReadValue();
+        Vector2 mousePos = gameInput.GetPointerPosition();
         Vector3 inputDir = Vector3.zero;
 
         if (mousePos.x < edgeScrollSize) inputDir.x -= 1f;
@@ -94,6 +96,18 @@ public class CameraController : MonoBehaviour
             Vector3 panDir = new Vector3(-mouseDelta.x, 0f, -mouseDelta.y) * 0.1f;
             transform.position += transform.right * panDir.x + transform.forward * panDir.z;
         }
+    }
+
+    public Vector3 GetMousePosition()
+    {
+        Vector3 mousePos = gameInput.GetPointerPosition();
+        Ray ray = Camera.main.ScreenPointToRay(mousePos);
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, Mathf.Infinity, groundMask))
+        {
+            lastPosition = hit.point;
+        }
+        return lastPosition;
     }
 
     #endregion

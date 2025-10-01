@@ -1,4 +1,3 @@
-using Unity.Cinemachine;
 using UnityEngine;
 
 public class GameInputs : MonoBehaviour
@@ -26,6 +25,7 @@ public class GameInputs : MonoBehaviour
     }
 
     public Vector2 GetLookDelta() => inputActions.Camera.Look.ReadValue<Vector2>();
+    public Vector2 GetPointerPosition() => inputActions.Camera.Pointer.ReadValue<Vector2>();
 
     public bool IsPanPressed() => inputActions.Camera.Pan.IsPressed();
     public float GetRotateInput() => inputActions.Camera.Rotate.ReadValue<float>();
