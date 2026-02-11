@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum FireMode { Single, MultiShot, Burst, Pulse, Arc, Beam, Fountain}
+public enum FireMode { Single, MultiShot, Burst, Pulse, Arc, Beam }
 public enum WeaponName { Pistol, Rifle, Shotgun, Sniper, Sword, BowAndArrow, Staff }
 
 [CreateAssetMenu(fileName = "TurretProperities", menuName = "Scriptable Objects/TurretProperities")]
@@ -8,8 +8,11 @@ public class TurretPropertiesSO : ScriptableObject
 {
     public WeaponName weaponName;
 
-    //check the mask for avoid
+    [Header("Masks")]
+    [Tooltip("Ground layer for Arc projectiles to detect landing")]
     public LayerMask groundMask;
+    [Tooltip("Enemy layer for AOE detection")]
+    public LayerMask enemyMask;
 
     [Header("Gun Stats")]
     public float damage;
@@ -29,18 +32,17 @@ public class TurretPropertiesSO : ScriptableObject
 
     [Header("Fire Mode")]
     public FireMode fireMode = FireMode.Single;
+    
     [Tooltip("Used only when fireMode = Burst")]
     public int burstCount = 3;
     [Tooltip("Seconds between shots in a burst")]
     public float burstInterval = 0.05f;
 
-    [Header("AOE stuff")]
-    [Tooltip("Use only when firemode = pulse")]
-    public float explosionRadius = 0f;
-    public float explosionForce = 0f;
-    public LayerMask explosionMask;
-    [Tooltip("1 = linear falloff, 2 = quadratic, etc.")]
-    public float explosionFalloffExponent = 1f;
-    [Tooltip("If true, projectile explodes on lifetime timeout.")]
-    public bool explodeOnTimeout = false;
+    [Header("Beam Mode Settings")]
+    [Tooltip("How long the beam fires before reloading")]
+    public float beamDuration = 3f;
+    [Tooltip("Time between shots for non-elemental bullets in beam mode (sniper)")]
+    public float beamShotInterval = 1.75f;
+    [Tooltip("Time between effect applications (stun, slow, chain) during beam")]
+    public float beamEffectInterval = 0.5f;
 }

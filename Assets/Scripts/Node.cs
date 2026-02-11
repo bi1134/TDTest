@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class Node : MonoBehaviour
+public class Node : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler
 {
     public Color hoverColor;
     private Color startColor;
@@ -23,20 +23,22 @@ public class Node : MonoBehaviour
         buildManager = BuildManager.instance;
     }
 
-    private void OnMouseEnter()
+    public void OnPointerEnter(PointerEventData eventData)
     {
         //if theres nothing to build or the mouse is over a UI element, do nothing
-        if (turretBase != null || !buildManager.HasTurretSelection || EventSystem.current.IsPointerOverGameObject()) return;
+        // EventSystem handles blocking by UI if structured correctly, but checking IsPointerOverGameObject is a safeguard or for specific behavior.
+        // However, OnPointerEnter generally implies the raycast hit THIS object.
+        if (turretBase != null || !buildManager.HasTurretSelection) return;
 
-        if(buildManager.HasEnoughMoney)
-        rend.material.color = hoverColor;
+        if (buildManager.HasEnoughMoney)
+            rend.material.color = hoverColor;
         else
-        rend.material.color = Color.red;
+            rend.material.color = Color.red;
     }
 
-    private void OnMouseDown()
+    public void OnPointerDown(PointerEventData eventData)
     {
-        if(turretBase != null || !buildManager.HasTurretSelection || EventSystem.current.IsPointerOverGameObject())
+        if (turretBase != null || !buildManager.HasTurretSelection)
         {
             Debug.Log("Cannot build here! Node already has a turret base. or theres no turret base to build");
             return;
@@ -45,7 +47,7 @@ public class Node : MonoBehaviour
         buildManager.TryBuildTurretOn(this);
     }
 
-    private void OnMouseExit()
+    public void OnPointerExit(PointerEventData eventData)
     {
         rend.material.color = startColor; // Reset to original color
     }

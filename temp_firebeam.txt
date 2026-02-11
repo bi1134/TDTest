@@ -1,0 +1,32 @@
+
+    /// <summary>
+    /// GDD: Beam fire mode - hitscan-based, continuous or instant fire.
+    /// Provides consistent and immediate damage against fast or evasive enemies.
+    /// </summary>
+    public void FireBeam(Vector3 targetPos, TurretPropertiesSO weaponStats)
+    {
+        Vector3 origin = firePoint.position;
+        Vector3 dir = (targetPos - origin).normalized;
+        
+        // Hitscan raycast
+        if (Physics.Raycast(origin, dir, out RaycastHit hit, 100f))
+        {
+            // Apply damage to enemy if hit
+            var enemy = hit.collider.GetComponent<Enemy>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(weaponStats.damage);
+            }
+            
+            // TODO: Add visual beam effect (LineRenderer or VFX)
+            Debug.DrawLine(origin, hit.point, Color.cyan, 0.1f);
+        }
+        else
+        {
+            // No hit - draw beam to max range
+            Debug.DrawRay(origin, dir * 100f, Color.cyan, 0.1f);
+        }
+        
+        //muzzleFlash?.Play();
+        PlayShootSound();
+    }

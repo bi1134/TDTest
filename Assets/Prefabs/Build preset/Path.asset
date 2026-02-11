@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92b0cf265270d4845a3495bf9eff788f, type: 3}
+  m_Name: Path
+  m_EditorClassIdentifier: Assembly-CSharp::WFC_Sudoku.WFCTilePreset
+  modules:
+  - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+  - {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+  - {fileID: 3876561842097756596, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+  mapRules:
+  - ruleName: wall
+    active: 1
+    sourceColor: {r: 1, g: 1, b: 1, a: 0}
+    modulePrefab: {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+    targetLayer: 0
+    tolerance: 0
+  - ruleName: air
+    active: 1
+    sourceColor: {r: 0, g: 0, b: 0, a: 0}
+    modulePrefab: {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+    targetLayer: 0
+    tolerance: 0
+  - ruleName: spawn
+    active: 1
+    sourceColor: {r: 1, g: 0, b: 0, a: 1}
+    modulePrefab: {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+    targetLayer: 0
+    tolerance: 0
+  dualGridProfile:
+    fullModels: []
+    lShapeModels: []
+    lineModels: []
+    stitchModels: []
+    cornerModels: []
+    emptyModels: []

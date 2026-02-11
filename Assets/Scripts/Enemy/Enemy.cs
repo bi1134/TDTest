@@ -1,9 +1,356 @@
 using UnityEngine;
+using System.Collections.Generic;
 
+/// <summary>
+/// GDD Enemy Properties:
+/// - Health, Speed, ShieldHP
+/// - Path-following only
+/// - Shield HP absorbs damage before normal health
+/// - Debuff system: Slow, Fire DOT, Vulnerability, Electric stun
+/// </summary>
 public class Enemy : MonoBehaviour
 {
-    public void TakeDamage(float damage)
+    [Header("GDD Enemy Properties")]
+    public float maxHealth = 100f;
+    public float baseSpeed = 3f;
+    
+    [Header("Shield HP (GDD: separate health bar)")]
+    [Tooltip("Shield HP absorbs incoming damage before normal health")]
+    public float maxShieldHP = 0f;
+    
+    [Header("Runtime State")]
+    [SerializeField] private float currentHealth;
+    [SerializeField] private float currentShieldHP;
+    [SerializeField] private float currentSpeed;
+    
+    /// <summary>
+    /// GDD: Some enemies reduce damage from frontal direct-fire attacks (Barrier)
+    /// </summary>
+    [Header("Barrier (GDD: directional damage reduction)")]
+    public bool hasBarrier = false;
+    [Range(0f, 1f)]
+    [Tooltip("Damage reduction from frontal attacks (0 = no reduction, 1 = full block)")]
+    public float barrierReduction = 0.5f;
+
+    [Header("Active Debuffs (Runtime)")]
+    [SerializeField] private float slowMultiplier = 1f;
+    [SerializeField] private float vulnerabilityMultiplier = 1f;
+    [SerializeField] private float fireDOTDamagePerSecond = 0f;
+    [SerializeField] private float fireDOTRemainingTime = 0f;
+    [SerializeField] private bool isStunned = false;
+    [SerializeField] private float stunRemainingTime = 0f;
+
+    // Public accessors
+    public float CurrentHealth => currentHealth;
+    public float CurrentShieldHP => currentShieldHP;
+    public float CurrentSpeed => currentSpeed;
+    public float SlowMultiplier => slowMultiplier;
+    public float VulnerabilityMultiplier => vulnerabilityMultiplier;
+    public bool IsStunned => isStunned;
+    public bool IsAlive => currentHealth > 0;
+    public bool HasActiveShield => currentShieldHP > 0;
+
+
+    private Transform target;
+    private int wavePointIndex = 0;
+
+    private void Awake()
     {
-        print(this + " is taking " + damage );
-    }    
+        currentHealth = maxHealth;
+        currentShieldHP = maxShieldHP;
+        currentSpeed = baseSpeed;
+    }
+
+    private void Start()
+    {
+    }
+
+    private void Update()
+    {
+        // Update current speed based on debuffs
+        UpdateCurrentSpeed();
+        
+        // Process Fire DOT
+        ProcessFireDOT();
+        
+        // Process stun timer
+        ProcessStun();
+    }
+
+    private void UpdateCurrentSpeed()
+    {
+        if (isStunned)
+        {
+            currentSpeed = 0f;
+        }
+        else
+        {
+            currentSpeed = baseSpeed * slowMultiplier;
+        }
+    }
+
+    private void ProcessFireDOT()
+    {
+        if (fireDOTRemainingTime > 0 && fireDOTDamagePerSecond > 0)
+        {
+            fireDOTRemainingTime -= Time.deltaTime;
+            TakeDamageRaw(fireDOTDamagePerSecond * Time.deltaTime);
+            
+            if (fireDOTRemainingTime <= 0)
+            {
+                fireDOTDamagePerSecond = 0f;
+            }
+        }
+    }
+
+    private void ProcessStun()
+    {
+        if (stunRemainingTime > 0)
+        {
+            stunRemainingTime -= Time.deltaTime;
+            if (stunRemainingTime <= 0)
+            {
+                isStunned = false;
+            }
+        }
+    }
+
+    #region Damage Methods
+
+    /// <summary>
+    /// Take damage with GDD damage rules:
+    /// - Shield HP absorbs damage first
+    /// - Vulnerability affects normal HP only
+    /// </summary>
+    public void TakeDamage(float damage, bool bypassShield = false)
+    {
+        if (!IsAlive) return;
+
+        float remainingDamage = damage;
+
+        // Shield HP absorbs damage first (GDD rule) unless bypassed
+        if (currentShieldHP > 0 && !bypassShield)
+        {
+            if (remainingDamage >= currentShieldHP)
+            {
+                remainingDamage -= currentShieldHP;
+                currentShieldHP = 0;
+            }
+            else
+            {
+                currentShieldHP -= remainingDamage;
+                remainingDamage = 0;
+            }
+        }
+
+        // Apply vulnerability multiplier to normal health damage only
+        if (remainingDamage > 0)
+        {
+            currentHealth -= remainingDamage * vulnerabilityMultiplier;
+        }
+
+        if (currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    /// <summary>
+    /// Raw damage that bypasses all modifiers (used for DOT)
+    /// </summary>
+    private void TakeDamageRaw(float damage)
+    {
+        if (!IsAlive) return;
+        currentHealth -= damage;
+        if (currentHealth <= 0) Die();
+    }
+
+    #endregion
+
+    #region Debuff Application Methods
+
+    /// <summary>
+    /// Apply slow debuff (GDD: Ice slow or Utility slow)
+    /// </summary>
+    /// <param name="slowPercent">Slow percentage (0-1), e.g., 0.3 = 30% slow</param>
+    /// <param name="duration">Duration in seconds</param>
+    public void ApplySlow(float slowPercent, float duration)
+    {
+        // Slow stacks by taking the strongest slow
+        float newMultiplier = 1f - Mathf.Clamp01(slowPercent);
+        if (newMultiplier < slowMultiplier)
+        {
+            slowMultiplier = newMultiplier;
+        }
+        
+        // Start coroutine to remove slow after duration
+        StartCoroutine(RemoveSlowAfterDelay(duration, newMultiplier));
+        
+        Debug.Log($"{gameObject.name}: Slowed by {slowPercent * 100}% for {duration}s. Current speed: {currentSpeed}");
+    }
+
+    private System.Collections.IEnumerator RemoveSlowAfterDelay(float delay, float appliedMultiplier)
+    {
+        yield return new WaitForSeconds(delay);
+        // Only remove if this was the active slow
+        if (Mathf.Approximately(slowMultiplier, appliedMultiplier))
+        {
+            slowMultiplier = 1f;
+        }
+    }
+
+    /// <summary>
+    /// GDD: Vulnerability increases damage to normal health only (no Shield HP effect)
+    /// </summary>
+    /// <param name="vulnerabilityPercent">Extra damage percentage (0-1), e.g., 0.25 = 25% more damage</param>
+    /// <param name="duration">Duration in seconds</param>
+    public void ApplyVulnerability(float vulnerabilityPercent, float duration)
+    {
+        float newMultiplier = 1f + Mathf.Clamp01(vulnerabilityPercent);
+        if (newMultiplier > vulnerabilityMultiplier)
+        {
+            vulnerabilityMultiplier = newMultiplier;
+        }
+        
+        StartCoroutine(RemoveVulnerabilityAfterDelay(duration, newMultiplier));
+        
+        Debug.Log($"{gameObject.name}: Vulnerable! Taking {vulnerabilityPercent * 100}% extra damage for {duration}s");
+    }
+
+    private System.Collections.IEnumerator RemoveVulnerabilityAfterDelay(float delay, float appliedMultiplier)
+    {
+        yield return new WaitForSeconds(delay);
+        if (Mathf.Approximately(vulnerabilityMultiplier, appliedMultiplier))
+        {
+            vulnerabilityMultiplier = 1f;
+        }
+    }
+
+    /// <summary>
+    /// GDD: Shield Shred - Reduce Shield HP by percentage of max shield
+    /// User spec: Shield Shred should decrease current Shield HP by 35% of total shield
+    /// </summary>
+    /// <param name="shredPercent">Percentage of MAX shield HP to remove (default 0.35 = 35%)</param>
+    public void ApplyShieldShred(float shredPercent = 0.35f)
+    {
+        if (currentShieldHP <= 0) return;
+        
+        float shredAmount = maxShieldHP * shredPercent;
+        currentShieldHP = Mathf.Max(0, currentShieldHP - shredAmount);
+        
+        Debug.Log($"{gameObject.name}: Shield Shred! Lost {shredAmount} shield HP. Remaining: {currentShieldHP}/{maxShieldHP}");
+    }
+
+    /// <summary>
+    /// GDD: Fire - Damage over time
+    /// </summary>
+    /// <param name="damagePerSecond">DOT damage per second</param>
+    /// <param name="duration">Duration in seconds</param>
+    public void ApplyFireDOT(float damagePerSecond, float duration)
+    {
+        // Refresh or upgrade DOT
+        if (damagePerSecond > fireDOTDamagePerSecond)
+        {
+            fireDOTDamagePerSecond = damagePerSecond;
+        }
+        fireDOTRemainingTime = Mathf.Max(fireDOTRemainingTime, duration);
+        
+        Debug.Log($"{gameObject.name}: Burning! {damagePerSecond} DPS for {duration}s");
+    }
+
+    /// <summary>
+    /// GDD: Electric - Chain/stun effect
+    /// </summary>
+    /// <param name="duration">Stun duration in seconds</param>
+    public void ApplyStun(float duration)
+    {
+        isStunned = true;
+        stunRemainingTime = Mathf.Max(stunRemainingTime, duration);
+        
+        Debug.Log($"{gameObject.name}: Stunned for {duration}s!");
+    }
+
+    #endregion
+
+    #region Barrier Methods
+
+    /// <summary>
+    /// Check if attack is from front (for Barrier mechanic)
+    /// </summary>
+    public bool IsAttackFromFront(Vector3 attackDirection)
+    {
+        if (!hasBarrier) return false;
+        
+        float dot = Vector3.Dot(transform.forward, -attackDirection.normalized);
+        return dot > 0.5f; // Within ~60 degree frontal cone
+    }
+
+    /// <summary>
+    /// Apply barrier reduction if attack is frontal
+    /// </summary>
+    public float ApplyBarrierReduction(float damage, Vector3 attackDirection)
+    {
+        if (IsAttackFromFront(attackDirection))
+        {
+            float reduced = damage * (1f - barrierReduction);
+            Debug.Log($"{gameObject.name}: Barrier blocked! {damage} -> {reduced}");
+            return reduced;
+        }
+        return damage;
+    }
+
+    #endregion
+
+    private void Die()
+    {
+        Debug.Log($"{gameObject.name} has died!");
+        // TODO: Death effects, rewards, etc.
+        Destroy(gameObject);
+    }
+
+    #region Debug/Editor Helpers
+
+    private void OnGUI()
+    {
+        // Simple debug UI in game view
+        if (!IsAlive) return;
+        
+        Vector3 screenPos = Camera.main.WorldToScreenPoint(transform.position + Vector3.up * 2);
+        if (screenPos.z > 0)
+        {
+            float y = Screen.height - screenPos.y;
+            
+            // Health bar
+            GUI.Label(new Rect(screenPos.x - 50, y, 100, 20), 
+                $"HP: {currentHealth:F0}/{maxHealth}");
+            
+            // Shield bar
+            if (maxShieldHP > 0)
+            {
+                GUI.Label(new Rect(screenPos.x - 50, y + 15, 100, 20), 
+                    $"Shield: {currentShieldHP:F0}/{maxShieldHP}");
+            }
+            
+            // Speed
+            GUI.Label(new Rect(screenPos.x - 50, y + 30, 100, 20), 
+                $"Speed: {currentSpeed:F1}");
+            
+            // Debuffs
+            string debuffs = "";
+            if (slowMultiplier < 1f) debuffs += "[SLOW] ";
+            if (vulnerabilityMultiplier > 1f) debuffs += "[VULN] ";
+            if (fireDOTRemainingTime > 0) debuffs += "[BURN] ";
+            if (isStunned) debuffs += "[STUN] ";
+            if (hasBarrier) debuffs += "[BARRIER] ";
+            
+            if (!string.IsNullOrEmpty(debuffs))
+            {
+                GUI.Label(new Rect(screenPos.x - 50, y + 45, 150, 20), debuffs);
+            }
+        }
+    }
+
+    #endregion
+
+    // TODO: Path-following behavior (GDD: path-following only)
 }
