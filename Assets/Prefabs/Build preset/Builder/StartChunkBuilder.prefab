@@ -269,12 +269,34 @@ MonoBehaviour:
       chunkCoordinate: {x: 0, y: 0}
     cellOffset: {x: -0.5, y: 0, z: -0.5}
     dualGridPrefabs_REMOVED: []
+  seed: 116858
+  useRandomSeed: 1
   definedBlueprints:
   - layerName: Path
     active: 1
     activeColor: {r: 1, g: 1, b: 1, a: 1}
     outputMap: {fileID: 0}
     storedMapData:
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
@@ -354,29 +376,10 @@ MonoBehaviour:
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 1, b: 0, a: 1}
     modifiers:
     - rid: 4795462962127831040
+    spawnCommands: []
   - layerName: Ground
     active: 1
     activeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -402,6 +405,26 @@ MonoBehaviour:
     - {r: 1, g: 1, b: 1, a: 1}
     - {r: 1, g: 1, b: 1, a: 1}
     - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 1, g: 1, b: 1, a: 1}
@@ -461,31 +484,12 @@ MonoBehaviour:
     - {r: 1, g: 1, b: 1, a: 1}
     - {r: 1, g: 1, b: 1, a: 1}
     - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
     modifiers:
     - rid: 4795462962127831041
     - rid: 4795462962127831043
     - rid: 4795462962127831042
+    spawnCommands: []
   - layerName: Terrain
     active: 1
     activeColor: {r: 1, g: 1, b: 1, a: 1}
@@ -502,6 +506,26 @@ MonoBehaviour:
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 1, g: 1, b: 1, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
+    - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 1, g: 1, b: 1, a: 1}
@@ -560,26 +584,6 @@ MonoBehaviour:
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 0, g: 0, b: 0, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
-    - {r: 1, g: 1, b: 1, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
     - {r: 0, g: 0, b: 0, a: 1}
@@ -594,6 +598,7 @@ MonoBehaviour:
     modifiers:
     - rid: 4795462962127831044
     - rid: 4795462962127831045
+    spawnCommands: []
   buildLayers:
   - active: 1
     layerName: Path
@@ -601,7 +606,7 @@ MonoBehaviour:
     yOffset: 0
     useDualGrid: 0
     presets:
-    - preset: {fileID: 11400000, guid: fdd50a4532600a3458abdd808fe08021, type: 2}
+    - preset: {fileID: 11400000, guid: 5643f587899dbe14fbfb62496ef7f31d, type: 2}
       weight: 0
   - active: 1
     layerName: Ground
@@ -844,18 +849,19 @@ MonoBehaviour:
         active: 1
         expanded: 1
         name: TowerDefensePathGenerator
+        injectedSeed: 1092592665
         useRandomSeed: 0
         seed: 251616
         numberOfStarts: 1
         numberOfEnds: 1
-        generateRandomPoints: 1
+        generateRandomPoints: 0
         minPointSeparation: 3
         startPoints:
         - edge: 1
-          position: 0.6362089
+          position: 0.99454254
         endPoints:
         - edge: 0
-          position: 0.21458338
+          position: 0.40768012
         inputLayerName: 
         stitchDirection: 1
         stitchEnabled: 1
@@ -867,29 +873,31 @@ MonoBehaviour:
         pathPadding: 1
         pathWidth: 1
         markEndpoints: 1
-        startColor: {r: 1, g: 1, b: 1, a: 1}
+        startColor: {r: 0, g: 1, b: 0, a: 1}
         endColor: {r: 1, g: 0, b: 0, a: 1}
         generatedPath:
-        - {x: 9, y: 6}
-        - {x: 8, y: 6}
-        - {x: 7, y: 6}
-        - {x: 6, y: 6}
-        - {x: 5, y: 6}
-        - {x: 4, y: 6}
-        - {x: 3, y: 6}
-        - {x: 2, y: 6}
+        - {x: 9, y: 9}
+        - {x: 9, y: 8}
+        - {x: 8, y: 8}
+        - {x: 7, y: 8}
+        - {x: 6, y: 8}
+        - {x: 5, y: 8}
+        - {x: 4, y: 8}
+        - {x: 3, y: 8}
+        - {x: 2, y: 8}
+        - {x: 1, y: 8}
+        - {x: 1, y: 7}
         - {x: 1, y: 6}
         - {x: 1, y: 5}
         - {x: 1, y: 4}
-        - {x: 1, y: 3}
-        - {x: 1, y: 2}
-        - {x: 0, y: 2}
+        - {x: 0, y: 4}
     - rid: 4795462962127831041
       type: {class: CellularAutomataModifier, ns: TerrainGenerator, asm: Assembly-CSharp}
       data:
         active: 1
         expanded: 1
         name: CellularAutomataModifier
+        injectedSeed: 1092592665
         fillPercent: 0
         smoothIterations: 28
         ensureConnected: 0
@@ -902,6 +910,7 @@ MonoBehaviour:
         active: 1
         expanded: 1
         name: SubtractModifier
+        injectedSeed: 1092592699
         inputLayerName: Path
     - rid: 4795462962127831043
       type: {class: GrowModifier, ns: TerrainGenerator, asm: Assembly-CSharp}
@@ -909,6 +918,7 @@ MonoBehaviour:
         active: 1
         expanded: 1
         name: GrowModifier
+        injectedSeed: 1092592682
         radius: 1
     - rid: 4795462962127831044
       type: {class: AddModifier, ns: TerrainGenerator, asm: Assembly-CSharp}
@@ -916,6 +926,7 @@ MonoBehaviour:
         active: 1
         expanded: 1
         name: AddModifier
+        injectedSeed: 1092592665
         inputLayerName: Ground
     - rid: 4795462962127831045
       type: {class: ShrinkModifier, ns: TerrainGenerator, asm: Assembly-CSharp}
@@ -923,6 +934,7 @@ MonoBehaviour:
         active: 1
         expanded: 1
         name: ShrinkModifier
+        injectedSeed: 1092592682
         radii: 1
         useDiagonals: 1
 --- !u!1 &8300931083251462615

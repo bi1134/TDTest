@@ -40,8 +40,11 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5637598869104021391}
+  - component: {fileID: 8043970487159285966}
+  - component: {fileID: 1545557273090029401}
+  - component: {fileID: 3876561842097756596}
   m_Layer: 0
-  m_Name: Path 1
+  m_Name: FacePLace
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -64,6 +67,109 @@ Transform:
   - {fileID: 8517856028697982970}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8043970487159285966
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6782390953603596957}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1545557273090029401
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6782390953603596957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a313c8387eddbe64c97574026a1f0408, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverColor: {r: 0.5622641, g: 0.5598771, b: 0.5590815, a: 0}
+  positionOffset: {fileID: 2343672315981754541}
+  rend: {fileID: 7037409180611212989}
+  turretBase: {fileID: 0}
+--- !u!114 &3876561842097756596
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6782390953603596957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e16f7e209a6b86c4a90fd758a944adcb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerrainGenerator.WFCModule
+  category: General
+  role: 0
+  spawnWeight: 1
+  terrainType: 1
+  rightSocket: 6
+  leftSocket: 6
+  frontSocket: 6
+  backSocket: 6
+  topSocket: 6
+  bottomSocket: 6
+  rightNeighbors:
+  - {fileID: 3876561842097756596}
+  - {fileID: 3876561842097756596, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+  - {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+  - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+  leftNeighbors:
+  - {fileID: 3876561842097756596}
+  - {fileID: 3876561842097756596, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+  - {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+  - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+  frontNeighbors:
+  - {fileID: 3876561842097756596}
+  - {fileID: 3876561842097756596, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+  - {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+  - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+  backNeighbors:
+  - {fileID: 3876561842097756596}
+  - {fileID: 3876561842097756596, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+  - {fileID: 3876561842097756596, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
+  - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+  topNeighbors:
+  - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
+  bottomNeighbors:
+  - {fileID: 3876561842097756596}
+  variants:
+  - variantName: 
+    prefab: {fileID: 6782390953603596957}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
 --- !u!1 &8830717408593657364
 GameObject:
   m_ObjectHideFlags: 0
@@ -130,7 +236,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 93f117dd7f1f4b341afe212de7afc389, type: 2}
+  - {fileID: 2100000, guid: ddcf0137fe07f244db7c19237c24c4a3, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

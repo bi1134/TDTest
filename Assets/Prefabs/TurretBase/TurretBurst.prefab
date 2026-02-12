@@ -47,10 +47,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   firePoint: {fileID: 4249947712785460157}
-  bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
   muzzleFlash: {fileID: 0}
   fireClip: {fileID: 0}
   audioSource: {fileID: 0}
+  bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
+  currentBulletSO: {fileID: 11400000, guid: e87a95e6808d48943ab3e99dcc196195, type: 2}
   axisRotationDeg: 0
   evenAxisDistribution: 1
   deterministicPelletSpacing: 1
@@ -146,6 +147,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &3199017109540238118
 GameObject:
@@ -231,6 +233,7 @@ MonoBehaviour:
   target: {fileID: 0}
   parentNode: {fileID: -7834384760599585665}
   hoverColor: {r: 0.3886792, g: 0.38647914, b: 0.38647914, a: 0}
+  targetRenderer: {fileID: 0}
 --- !u!65 &2704609498545071977
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -372,6 +375,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!136 &3460489202651270813
 CapsuleCollider:
@@ -484,6 +488,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!1 &7936528475150311248
 GameObject:

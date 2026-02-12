@@ -1,12 +1,13 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class Shop : MonoBehaviour
 {
-    public TurretBaseBlueprint standardTurret;
-    public TurretBaseBlueprint gatlingTurret;
-
-    public BulletBlueprint standardBullet;
-    public BulletBlueprint anotherBullet;
+    [Header("Shop Config")]
+    public List<TurretBlueprintSO> availableTurrets;
+    public List<BulletBlueprintSO> availableBullets;
+    public GameObject shopItemPrefab;
+    public Transform shopItemsContainer;
 
     private BuildManager buildManager;
 
@@ -14,30 +15,53 @@ public class Shop : MonoBehaviour
     private void Start()
     {
         buildManager = BuildManager.instance;
+        PopulateShop();
     }
 
-    public void SelectStandardTurret()
+    private void PopulateShop()
     {
-        print("standard Turret purchased");
+        if (shopItemPrefab == null || shopItemsContainer == null)
+        {
+            Debug.LogWarning("Shop: Missing references for dynamic generation.");
+            return;
+        }
 
-        buildManager.SelectTurret(standardTurret);
+        // Generate Turrets
+        foreach (var turret in availableTurrets)
+        {
+            if (turret == null) continue;
+
+            GameObject itemObj = Instantiate(shopItemPrefab, shopItemsContainer);
+            ShopItemUI itemUI = itemObj.GetComponent<ShopItemUI>();
+            if (itemUI != null)
+            {
+                itemUI.Setup(turret, SelectTurret);
+            }
+        }
+
+        // Generate Bullets
+        foreach (var bullet in availableBullets)
+        {
+            if (bullet == null) continue;
+
+            GameObject itemObj = Instantiate(shopItemPrefab, shopItemsContainer);
+            ShopItemUI itemUI = itemObj.GetComponent<ShopItemUI>();
+            if (itemUI != null)
+            {
+                itemUI.Setup(bullet, SelectBullet);
+            }
+        }
     }
 
-    public void SelectAnotherTurret()
+    public void SelectTurret(TurretBlueprintSO turret)
     {
-        print("Another Turret purchased");
-        buildManager.SelectTurret(gatlingTurret);
+        print("Turret Selected: " + turret.turretName);
+        buildManager.SelectTurret(turret);
     }
 
-    public void SelectTurretBullet()
+    public void SelectBullet(BulletBlueprintSO bullet)
     {
-        print("Turret barrel purchased");
-        buildManager.SelectBullet(standardBullet);
-    }
-
-    public void SelectAnotherBullet()
-    {
-        print("Another barrel purchased");
-        buildManager.SelectBullet(anotherBullet);
+        print("Bullet Selected: " + bullet.bulletName);
+        buildManager.SelectBullet(bullet);
     }
 }

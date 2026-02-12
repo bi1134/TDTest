@@ -153,6 +153,32 @@ MonoBehaviour:
       requiredSocketID: 0
       mustNotMatch: 1
   - variantName: 
+    prefab: {fileID: 6782390953603596957}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 0
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 0
+  - variantName: 
+    prefab: {fileID: 6782390953603596957}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 5
+      mustNotMatch: 0
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 5
+      mustNotMatch: 0
+  - variantName: 1
     prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
     spawnWeight: 0
     limitHeight: 0
@@ -162,7 +188,16 @@ MonoBehaviour:
     - direction: {x: -1, y: 0, z: 0}
       requiredSocketID: 0
       mustNotMatch: 0
-  - variantName: 
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 0
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 5
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 5
+      mustNotMatch: 1
+  - variantName: 2
     prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
     spawnWeight: 0
     limitHeight: 0
@@ -172,7 +207,16 @@ MonoBehaviour:
     - direction: {x: 1, y: 0, z: 0}
       requiredSocketID: 0
       mustNotMatch: 0
-  - variantName: 
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 0
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 5
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 5
+      mustNotMatch: 1
+  - variantName: 3
     prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
     spawnWeight: 0
     limitHeight: 0
@@ -182,7 +226,16 @@ MonoBehaviour:
     - direction: {x: 0, y: 0, z: 1}
       requiredSocketID: 0
       mustNotMatch: 0
-  - variantName: 
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 5
+      mustNotMatch: 0
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 1
+  - variantName: 4
     prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
     spawnWeight: 0
     limitHeight: 0
@@ -191,6 +244,67 @@ MonoBehaviour:
     rules:
     - direction: {x: 0, y: 0, z: -1}
       requiredSocketID: 0
+      mustNotMatch: 0
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 5
+      mustNotMatch: 0
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 1
+  - variantName: 5
+    prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 0
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 6
+      mustNotMatch: 0
+  - variantName: 6
+    prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 0
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 6
+      mustNotMatch: 0
+  - variantName: 7
+    prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 0
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 6
+      mustNotMatch: 0
+  - variantName: 8
+    prefab: {fileID: 6782390953603596957, guid: 69f6814fb278ef74f843743d3892f048, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 0
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 6
       mustNotMatch: 0
 --- !u!1 &8830717408593657364
 GameObject:

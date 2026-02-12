@@ -12,7 +12,7 @@ public class PlayerStatsUI : MonoBehaviour
         AssignSignal();
 
         GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
-        GameUIEvent.LivesChanged(this, PlayerStats.lives);
+        GameUIEvent.LivesChanged(this, PlayerStats.Lives);
     }
     
     private void UpdateMoney(object sender, GameUIEvent.OnMoneyChangedEventArgs e)

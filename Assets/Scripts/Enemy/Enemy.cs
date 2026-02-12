@@ -51,31 +51,99 @@ public class Enemy : MonoBehaviour
     public bool HasActiveShield => currentShieldHP > 0;
 
 
-    private Transform target;
-    private int wavePointIndex = 0;
+    // Navigation
+    private List<Vector3> pathWaypoints;
+    private int targetWaypointIndex;
+    private float reachThreshold = 0.5f;
 
-    private void Awake()
+    public void Start()
     {
         currentHealth = maxHealth;
-        currentShieldHP = maxShieldHP;
-        currentSpeed = baseSpeed;
+        // Optional: currentShieldHP = maxShieldHP; if desired
     }
 
-    private void Start()
+    /// <summary>
+    /// Initialize enemy with a path to follow
+    /// </summary>
+    public void SetPath(List<Vector3> newPath)
     {
+        pathWaypoints = newPath;
+        targetWaypointIndex = 0;
+        
+        if (pathWaypoints != null && pathWaypoints.Count > 0)
+        {
+            Debug.Log($"[Enemy] Path set with {pathWaypoints.Count} waypoints. First: {pathWaypoints[0]}");
+            // Optional: teleport to start if just spawned?
+            // transform.position = pathWaypoints[0];
+        }
+        else
+        {
+             Debug.LogWarning("[Enemy] SetPath called with empty path!");
+        }
     }
 
     private void Update()
     {
-        // Update current speed based on debuffs
+        // Update stats
         UpdateCurrentSpeed();
-        
-        // Process Fire DOT
         ProcessFireDOT();
-        
-        // Process stun timer
         ProcessStun();
+        
+        // Move
+        if (!isStunned && IsAlive)
+        {
+            MoveAlongPath();
+        }
     }
+
+    private void MoveAlongPath()
+    {
+        if (pathWaypoints == null || targetWaypointIndex >= pathWaypoints.Count) return;
+
+        Vector3 targetPos = pathWaypoints[targetWaypointIndex];
+        Vector3 dir = targetPos - transform.position;
+        // Flatten Y for 2D movement logic in 3D world (if needed)
+        dir.y = 0; 
+
+        float dist = dir.magnitude;
+
+        // Debug.Log($"[Enemy] Moving to {targetPos} (Dist: {dist})");
+
+        if (dist <= reachThreshold)
+        {
+            // Reached waypoint
+            targetWaypointIndex++;
+            if (targetWaypointIndex >= pathWaypoints.Count)
+            {
+                ReachEnd();
+            }
+        }
+        else
+        {
+            // Move
+            transform.Translate(dir.normalized * currentSpeed * Time.deltaTime, Space.World);
+            
+            // Rotate to face direction
+            if (dir != Vector3.zero)
+            {
+                Quaternion lookRot = Quaternion.LookRotation(dir);
+                transform.rotation = Quaternion.Lerp(transform.rotation, lookRot, Time.deltaTime * 10f);
+            }
+        }
+    }
+
+    private void ReachEnd()
+    {
+        // Damage Player
+        PlayerStats.Lives--;
+        GameUIEvent.LivesChanged(this, PlayerStats.Lives); // Notify UI logic if event exists?
+        // Or assume PlayerStats handles events?
+        // Checking PlayerStats... assumes static access.
+        
+        Debug.Log("Enemy reached the end!");
+        Die();
+    }
+
 
     private void UpdateCurrentSpeed()
     {

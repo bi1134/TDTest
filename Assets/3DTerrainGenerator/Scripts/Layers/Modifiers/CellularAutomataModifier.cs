@@ -17,6 +17,13 @@ namespace TerrainGenerator
         public void ClearStitching()
         {
             seededEdges.Clear();
+            neighborExists = new bool[4];
+        }
+
+        private bool[] neighborExists = new bool[4];
+        public void SetNeighborExistence(EdgeSide side, bool exists)
+        {
+            neighborExists[(int)side] = exists;
         }
 
         public object GetEdgeData(EdgeSide side)
@@ -66,11 +73,15 @@ namespace TerrainGenerator
             int[,] grid = new int[width, height];
 
             // 1. Fill Randomly
-            if (useRandomSeed)
-            {
-                seed = Random.Range(0, 100000);
-            }
             int currentSeed = seed;
+            if (injectedSeed != -1)
+            {
+                currentSeed = injectedSeed;
+            }
+            else if (useRandomSeed)
+            {
+                currentSeed = Random.Range(0, 100000);
+            }
             
             System.Random pseudoRandom = new System.Random(currentSeed);
 

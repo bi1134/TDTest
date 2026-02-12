@@ -22,7 +22,10 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     public Color hoverColor;
     private Color startColor;
 
-    private Renderer rend;
+    [Tooltip("The renderer to apply hover effects to. Auto-detected if null.")]
+    public Renderer targetRenderer; 
+    
+    private Renderer rend => targetRenderer; // Backwards compatibility for now, or just use targetRenderer
     private BuildManager buildManager;
 
     // Beam state tracking (settings come from weaponStats SO)
@@ -37,10 +40,14 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     private void Start()
     {
-        rend = GetComponentInChildren<Renderer>();
-        if (rend != null)
+        if (targetRenderer == null)
         {
-            startColor = rend.material.color;
+            targetRenderer = GetComponentInChildren<Renderer>();
+        }
+        
+        if (targetRenderer != null)
+        {
+            startColor = targetRenderer.material.color;
         }
 
         buildManager = BuildManager.instance;
@@ -264,7 +271,9 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (!buildManager.HasBulletSelection || barrel.isActiveAndEnabled) return;
+        // Allow hover if we have bullet selection, regardless of whether barrel is active
+        if (!buildManager.HasBulletSelection) return; 
+        
         rend.material.color = hoverColor;
     }
 
@@ -282,14 +291,25 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     /// <summary>
     /// Install bullet into barrel - called by BuildManager
     /// </summary>
-    public void SetBulletType(BulletBlueprint bulletType)
+    public void SetBulletType(BulletBlueprintSO bulletType)
     {
-        if (!barrel.isActiveAndEnabled || !barrel.gameObject.activeSelf)
+        // Allow replacement if barrel is already active
+        // if (!barrel.isActiveAndEnabled || !barrel.gameObject.activeSelf) 
         {
-            barrel.SetBulletType(bulletType.bulletPrefab, bulletType.bulletProperties);
-            parentNode.SetBarrelActive(true);
+            // Now fetching prefab from the BulletPropertiesSO
+            var properties = bulletType.bulletProperties;
+            GameObject prefabObj = properties.bulletPrefab; 
             
-            Debug.Log($"Installed bullet: {bulletType.bulletProperties?.bulletType ?? BulletType.Normal}");
+            if (prefabObj != null && prefabObj.TryGetComponent<BulletProjectile>(out var projectile))
+            {
+                barrel.SetBulletType(projectile, properties);
+                parentNode.SetBarrelActive(true);
+                Debug.Log($"Installed bullet: {properties?.bulletType ?? BulletType.Normal}");
+            }
+            else
+            {
+                Debug.LogError($"Bullet Prefab in {bulletType.name} is missing BulletProjectile component!");
+            }
         }
     }
 

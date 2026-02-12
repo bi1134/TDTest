@@ -134,7 +134,7 @@ GameObject:
   - component: {fileID: 8448159825225389652}
   - component: {fileID: 4116956369546946917}
   m_Layer: 0
-  m_Name: GatlingBarrel
+  m_Name: ArcBarel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -170,10 +170,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   firePoint: {fileID: 381810027962799172}
-  bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
   muzzleFlash: {fileID: 0}
   fireClip: {fileID: 0}
   audioSource: {fileID: 0}
+  bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
+  currentBulletSO: {fileID: 11400000, guid: e87a95e6808d48943ab3e99dcc196195, type: 2}
   axisRotationDeg: 0
   evenAxisDistribution: 1
   deterministicPelletSpacing: 1
@@ -227,11 +228,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb2b3d564036ecb409843a7178df1abb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  weaponStats: {fileID: 11400000, guid: dd0aeb001bb560744935d61d4e6a5062, type: 2}
+  weaponStats: {fileID: 11400000, guid: 8bf294be3bb09d044b583f968e75ace8, type: 2}
   barrel: {fileID: 4116956369546946917}
   target: {fileID: 0}
   parentNode: {fileID: -7834384760599585665}
   hoverColor: {r: 0.3886792, g: 0.38647914, b: 0.38647914, a: 0}
+  targetRenderer: {fileID: 0}
 --- !u!65 &2704609498545071977
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -319,7 +321,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c0cbbe06f1a2980459c357a9b2014a49, type: 2}
+  - {fileID: 2100000, guid: 4e567bd8dda14104282645302585d09b, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -442,7 +444,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: aab6475024b75634784dd60883efc446, type: 2}
+  - {fileID: 2100000, guid: 93f117dd7f1f4b341afe212de7afc389, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -531,7 +533,7 @@ GameObject:
   - component: {fileID: 4499038179189283393}
   - component: {fileID: -7834384760599585665}
   m_Layer: 0
-  m_Name: PulseGatling
+  m_Name: TurretArc
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -569,6 +571,6 @@ MonoBehaviour:
   baseModule: {fileID: 102870318669079821}
   partToRotate: {fileID: 470981931841040386}
   turretBarrel: {fileID: 4116956369546946917}
-  range: 2.5
+  range: 5
   rotationSpeed: 10
   enemyTag: Enemy

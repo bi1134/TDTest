@@ -150,7 +150,26 @@ MonoBehaviour:
   - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
   bottomNeighbors:
   - {fileID: 3876561842097756596}
-  variants: []
+  variants:
+  - variantName: 
+    prefab: {fileID: 6782390953603596957}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
 --- !u!1 &8830717408593657364
 GameObject:
   m_ObjectHideFlags: 0

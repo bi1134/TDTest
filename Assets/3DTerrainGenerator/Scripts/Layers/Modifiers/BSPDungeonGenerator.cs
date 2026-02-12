@@ -14,7 +14,9 @@ namespace TerrainGenerator
 
         public override void Apply(WFCBlueprintLayer layer, List<WFCBlueprintLayer> context)
         {
-            if(useRandomSeed) seed = Random.Range(0, 100000);
+            if (injectedSeed != -1) seed = injectedSeed;
+            else if (useRandomSeed) seed = Random.Range(0, 100000);
+            
             System.Random rng = new System.Random(seed);
 
             Texture2D map = layer.outputMap;

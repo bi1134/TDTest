@@ -263,7 +263,6 @@ namespace TerrainGenerator
             WFCCell c = GetVisualCellAt(pos);
             if (c != null && c.Collapsed)
             {
-                 Debug.Log($"[WFC] ReResolve cell at {pos} in chunk {chunkCoordinate}");
                  WFCVisualizer.ResolveVisualForCell(c, GetVisualCellAt, gridSize, globalLookup, chunkCoordinate);
             }
         }

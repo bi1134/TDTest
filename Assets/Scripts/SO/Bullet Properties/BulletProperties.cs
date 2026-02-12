@@ -14,6 +14,9 @@ public class BulletPropertiesSO : ScriptableObject
     public float maxLifeTime = 3f;
     public float bulletDrop;
     public string bulletPoolTag = "Bullet";
+    
+    [Header("Visuals")]
+    public GameObject bulletPrefab;
 
     [Header("=== ELEMENTAL STATS ===")]
     

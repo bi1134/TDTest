@@ -18,6 +18,17 @@ namespace TerrainGenerator
         [Header("Procedural Generation")]
         [SerializeReference] // CRITICAL for polymorphism
         public List<WFCModifier> modifiers = new List<WFCModifier>();
+        
+        // Command Buffer for Spawning Objects (Processed by WFCBuilder)
+        [HideInInspector] public List<SpawnCommand> spawnCommands = new List<SpawnCommand>();
+
+        [System.Serializable]
+        public class SpawnCommand
+        {
+             public Vector3 position;
+             public Quaternion rotation;
+             public GameObject prefab;
+        }
 
         public Color BackgroundColor => backgroundColor;
 
@@ -41,7 +52,7 @@ namespace TerrainGenerator
             return outputMap != null;
         }
 
-        public void Generate(int width, int height, List<WFCBlueprintLayer> context)
+        public void Generate(int width, int height, List<WFCBlueprintLayer> context, int masterSeed)
         {
             // Initializes Texture
             if (outputMap == null || outputMap.width != width || outputMap.height != height)
@@ -61,10 +72,14 @@ namespace TerrainGenerator
             outputMap.Apply();
 
             // Run Modifiers
-            foreach (var mod in modifiers)
+            for (int i = 0; i < modifiers.Count; i++)
             {
+                var mod = modifiers[i];
                 if (mod != null && mod.active)
                 {
+                    // Inject deterministic seed derived from master
+                    mod.injectedSeed = masterSeed + (i * 17); // Simple offset hash
+                    
                     mod.Apply(this, context);
                     // Pass dimensions? Modifiers read map.width/height, so they are auto-updated.
                 }

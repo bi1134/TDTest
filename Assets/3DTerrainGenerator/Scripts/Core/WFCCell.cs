@@ -89,8 +89,17 @@ namespace TerrainGenerator
             // Optimization: Skip if we are strictly spawning the same visual
             if (currentVisualPrefab == prefab) return;
 
+            // TURRET PERSISTENCE: Check if there's a turret to save
+            GameObject existingTurret = null;
             if (spawnedObject != null)
             {
+                Node oldNode = spawnedObject.GetComponent<Node>();
+                if (oldNode != null && oldNode.turretBase != null)
+                {
+                    existingTurret = oldNode.turretBase;
+                    existingTurret.transform.SetParent(null); // Detach temporarily
+                }
+
                 if (Application.isPlaying) Destroy(spawnedObject);
                 else DestroyImmediate(spawnedObject);
             }
@@ -103,6 +112,27 @@ namespace TerrainGenerator
             {
                 spawnedObject = Instantiate(prefab, transform.position, finalRot, transform); 
                 spawnedObject.name = prefab.name + "_Variant";
+
+                // TURRET PERSISTENCE: Re-attach turret if applicable
+                if (existingTurret != null)
+                {
+                    Node newNode = spawnedObject.GetComponent<Node>();
+                    if (newNode != null)
+                    {
+                        // Re-parent to the new Node's offset
+                        Transform targetParent = (newNode.positionOffset != null) ? newNode.positionOffset.transform : newNode.transform;
+                        existingTurret.transform.SetParent(targetParent);
+                        existingTurret.transform.localPosition = Vector3.zero;
+                        existingTurret.transform.localRotation = Quaternion.identity;
+                        newNode.turretBase = existingTurret;
+                    }
+                    else
+                    {
+                        // New visual is NOT a Node (e.g. changed to Water/Air?), so destroy the turret
+                        if (Application.isPlaying) Destroy(existingTurret);
+                        else DestroyImmediate(existingTurret);
+                    }
+                }
             }
             
             currentVisualPrefab = prefab;

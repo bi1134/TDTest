@@ -120,10 +120,10 @@ MonoBehaviour:
   role: 0
   spawnWeight: 1
   terrainType: 1
-  rightSocket: 5
-  leftSocket: 5
-  frontSocket: 5
-  backSocket: 5
+  rightSocket: 0
+  leftSocket: 0
+  frontSocket: 0
+  backSocket: 0
   topSocket: 0
   bottomSocket: 0
   rightNeighbors:
@@ -149,17 +149,7 @@ MonoBehaviour:
   topNeighbors:
   - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
   bottomNeighbors: []
-  variants:
-  - variantName: 
-    prefab: {fileID: 6782390953603596957, guid: c5507c8a5664e7a4e828efec4032cc6c, type: 3}
-    spawnWeight: 1
-    limitHeight: 0
-    minHeight: 0
-    maxHeight: 0
-    rules:
-    - direction: {x: -1, y: 0, z: 0}
-      requiredSocketID: 5
-      mustNotMatch: 0
+  variants: []
 --- !u!1 &8830717408593657364
 GameObject:
   m_ObjectHideFlags: 0

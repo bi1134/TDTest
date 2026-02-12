@@ -145,6 +145,15 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""Test"",
+                    ""type"": ""Button"",
+                    ""id"": ""7dce0d20-f595-44ee-bf0e-1d9a9e8e0805"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -345,6 +354,17 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
                     ""action"": ""Pointer"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""7c1b3e2b-2dc9-4dd4-ad1d-c5c02a8e6d15"",
+                    ""path"": ""<Keyboard>/space"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Test"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -359,6 +379,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         m_Camera_Look = m_Camera.FindAction("Look", throwIfNotFound: true);
         m_Camera_Pan = m_Camera.FindAction("Pan", throwIfNotFound: true);
         m_Camera_Pointer = m_Camera.FindAction("Pointer", throwIfNotFound: true);
+        m_Camera_Test = m_Camera.FindAction("Test", throwIfNotFound: true);
     }
 
     ~@PlayerInputActions()
@@ -445,6 +466,7 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
     private readonly InputAction m_Camera_Look;
     private readonly InputAction m_Camera_Pan;
     private readonly InputAction m_Camera_Pointer;
+    private readonly InputAction m_Camera_Test;
     /// <summary>
     /// Provides access to input actions defined in input action map "Camera".
     /// </summary>
@@ -480,6 +502,10 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Camera/Pointer".
         /// </summary>
         public InputAction @Pointer => m_Wrapper.m_Camera_Pointer;
+        /// <summary>
+        /// Provides access to the underlying input action "Camera/Test".
+        /// </summary>
+        public InputAction @Test => m_Wrapper.m_Camera_Test;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -524,6 +550,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Pointer.started += instance.OnPointer;
             @Pointer.performed += instance.OnPointer;
             @Pointer.canceled += instance.OnPointer;
+            @Test.started += instance.OnTest;
+            @Test.performed += instance.OnTest;
+            @Test.canceled += instance.OnTest;
         }
 
         /// <summary>
@@ -553,6 +582,9 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
             @Pointer.started -= instance.OnPointer;
             @Pointer.performed -= instance.OnPointer;
             @Pointer.canceled -= instance.OnPointer;
+            @Test.started -= instance.OnTest;
+            @Test.performed -= instance.OnTest;
+            @Test.canceled -= instance.OnTest;
         }
 
         /// <summary>
@@ -635,5 +667,12 @@ public partial class @PlayerInputActions: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnPointer(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Test" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnTest(InputAction.CallbackContext context);
     }
 }

@@ -90,13 +90,18 @@ namespace TerrainGenerator
             int w = map.width;
             int h = map.height;
             
-            if (useRandomSeed)
-            {
-                seed = Random.Range(1, 999999);
-            }
             int currentSeed = seed;
+            if (injectedSeed != -1)
+            {
+                currentSeed = injectedSeed;
+            }
+            else if (useRandomSeed)
+            {
+                currentSeed = Random.Range(1, 999999);
+            }
+            
             System.Random prng = new System.Random(currentSeed);
-            Random.InitState(currentSeed); // Unity Random for some utils
+            // Random.InitState(currentSeed); // Optional: if reliant on Unity Random inside methods
 
             generatedPath.Clear();
             
@@ -111,28 +116,77 @@ namespace TerrainGenerator
             if (externalStartPoints.Count > 0) startPoints.AddRange(externalStartPoints);
             if (externalEndPoints.Count > 0) endPoints.AddRange(externalEndPoints);
             
-            // 1. Stitching First (Injects Anchors from Internal References)
+            // 1. Generate Base Cost Map (Perlin Noise) FIRST
+            float[,] costMap = new float[w, h];
+            float offset = (float)prng.NextDouble() * 1000f; 
+            
+            for (int x = 0; x < w; x++)
+            {
+                for (int y = 0; y < h; y++)
+                {
+                    float val = Mathf.PerlinNoise(x * noiseScale + offset, y * noiseScale + offset);
+                    
+                    // Boundary/Padding Logic (Initial Pass - Walls)
+                    // REMOVED: Endpoints are ON the border. If we mark border as wall, we ban all endpoints.
+                    // We only want to filter points based on TERRAIN (Perlin).
+                    // We can apply border logic LATER (Step 4), strictly excluding our chosen points.
+                    /*
+                    if (x < pathPadding || x >= w - pathPadding || y < pathPadding || y >= h - pathPadding)
+                    {
+                        val = 2.0f; // Guaranteed Wall.
+                    }
+                    */
+                    costMap[x, y] = val;
+                }
+            }
+
+            // 2. Stitching (Injects Anchors)
             if (stitchEnabled && !string.IsNullOrEmpty(inputLayerName))
             {
                 ApplyStitching(context, w, h);
+                
+                // STRICT CHECK: Remove Stitched Points that hit Walls
+                // "Lighten the End Points" if blocked.
+                for (int i = startPoints.Count - 1; i >= 0; i--)
+                {
+                    Vector2Int pt = GetEdgePoint(startPoints[i].edge, startPoints[i].position, w, h);
+                    // Check Cost (ignoring our own safety zone logic which hasn't run yet)
+                    // If cost > wallThreshold, it's blocked terrain.
+                    if (costMap[pt.x, pt.y] > wallThreshold)
+                    {
+                        // Remove blocked start
+                        startPoints.RemoveAt(i);
+                    }
+                }
+                for (int i = endPoints.Count - 1; i >= 0; i--)
+                {
+                    Vector2Int pt = GetEdgePoint(endPoints[i].edge, endPoints[i].position, w, h);
+                    if (costMap[pt.x, pt.y] > wallThreshold)
+                    {
+                        // Remove blocked end
+                        endPoints.RemoveAt(i);
+                    }
+                }
             }
             
-            // 2. Random Generation (Fills gaps)
+            // 3. Random Generation (Fills gaps)
             if (generateRandomPoints)
             {
-                GenerateDistinctPoints(w, h, prng);
+                 // We pass the costMap to check validity (Optional: Update GenerateDistinctPoints to check obstacles?)
+                 // Currently GenerateDistinctPoints just checks overlap.
+                 // Ideally it should check obstacles too.
+                 // Let's modify GenerateDistinctPoints? Or perform similar strict check after?
+                 // Let's modify GenerateDistinctPoints to check obstacles. (Wait, method signature change?)
+                 // For now, let's keep it simple: Adding random points should verify they are okay.
+                 GenerateDistinctPoints(w, h, prng, costMap); // Updated signature call
             }
             
             // Resolve actual coordinates
             List<Vector2Int> sCoords = startPoints.Select(p => GetEdgePoint(p.edge, p.position, w, h)).ToList();
             List<Vector2Int> eCoords = endPoints.Select(p => GetEdgePoint(p.edge, p.position, w, h)).ToList();
 
-            // 2. Generate Cost Map
-            float[,] costMap = new float[w, h];
-            float offset = (float)prng.NextDouble() * 1000f; 
-            
-            // Mark ALL points as Obstacles initially (to prevent crossing them)
-            // But we must check against this list carefully during pathfinding (allow Target, deny others)
+            // 4. Finalize Cost Map (Protect Valid Points)
+            // Mark Valid Points as Safe (Punch holes in walls)
             HashSet<Vector2Int> allPoints = new HashSet<Vector2Int>();
             allPoints.UnionWith(sCoords);
             allPoints.UnionWith(eCoords);
@@ -141,42 +195,21 @@ namespace TerrainGenerator
             {
                 for (int y = 0; y < h; y++)
                 {
-                    float val = Mathf.PerlinNoise(x * noiseScale + offset, y * noiseScale + offset);
-                    
-                    // Boundary/Padding Logic
-                    // User wants path to spawn INSIDE the zone 18x18 (for 20x20).
-                    // So x=0, x=w-1, y=0, y=h-1 should be high cost/walls
-                    // BUT Start/End points are ON the edge, so they must be allowed.
-                    
-                    if (x < pathPadding || x >= w - pathPadding || y < pathPadding || y >= h - pathPadding)
+                    // Re-evaluate boundary logic with SAFE points
+                     if (x < pathPadding || x >= w - pathPadding || y < pathPadding || y >= h - pathPadding)
                     {
-                        // Check if this pixel is close to a Start/End point
-                        // If it is, allow it (bridge). If not, block it.
-                        // We allow the point itself and maybe 1 neighbor to be safe?
-                        // Actually, just checking if it is IN sCoords/eCoords is enough if padding is 1.
-                        // If padding > 1, we might block the entry.
-                        // Assumption: Padding is usually 1.
-                        
-                        bool isSafe = false;
-                        if (allPoints.Contains(new Vector2Int(x, y))) isSafe = true;
-                        
-                        if (!isSafe)
+                        if (allPoints.Contains(new Vector2Int(x, y)))
                         {
-                            val += 10f; // Soft wall (high cost) or Hard wall?
-                            // User said "path should not reach w-1", implying Hard Limit.
-                            // Let's add a massive cost but keep it technically passable if desperate?
-                            // Or just rely on Wall Threshold?
-                            // Let's default to setting it very high so it acts like a wall.
-                            val = 1.0f; // Max Perlin is 1.0. 
-                            // Current logic: moveCost = 1 + val * strength.
-                            // If val is 1, cost is 11.
-                            // If we want it to be a WALL, we should ensure it exceeds wallThreshold.
-                            // wallThreshold is 0.8 by default.
-                            val = 2.0f; // Guaranteed Wall.
+                            // It's a valid point, clear the wall!
+                            costMap[x, y] = 0f; 
+                        }
+                        else
+                        {
+                            // It's NOT a valid point, maximize cost (Wall)
+                            // This restores the padding logic for path content.
+                            costMap[x, y] = 2.0f;
                         }
                     }
-                    
-                    costMap[x, y] = val;
                 }
             }
 
@@ -227,6 +260,19 @@ namespace TerrainGenerator
 
             DrawPath(map, layer.activeColor, w, h);
             map.Apply();
+        }
+        
+        private Quaternion CalculateOrientation(Vector2Int pos, HashSet<Vector2Int> path, int w, int h)
+        {
+            Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+            foreach(var d in dirs)
+            {
+                if (path.Contains(pos + d))
+                {
+                    return Quaternion.LookRotation(new Vector3(d.x, 0, d.y));
+                }
+            }
+            return Quaternion.identity;
         }
 
         private void ApplyStitching(List<WFCBlueprintLayer> context, int w, int h)
@@ -288,7 +334,7 @@ namespace TerrainGenerator
             // These points are now "Anchors".
         }
 
-        private void GenerateDistinctPoints(int w, int h, System.Random prng)
+        private void GenerateDistinctPoints(int w, int h, System.Random prng, float[,] costMap)
         {
             // Update: Do NOT clear. We append to existing (e.g. Stitched) points.
             
@@ -334,6 +380,7 @@ namespace TerrainGenerator
             for(int i=0; i<neededS; i++)
             {
                 // Try up to 10 times to find a valid spot
+                bool added = false;
                 for(int attempt=0; attempt<10; attempt++)
                 {
                     EdgeSide edge = (EdgeSide)prng.Next(0, 4);
@@ -348,13 +395,31 @@ namespace TerrainGenerator
                         if (Vector2Int.Distance(existing, pt) < minPointSeparation) { tooClose = true; break; }
                     }
                     
-                    if (!tooClose)
+                    // Check Obstacle
+                    bool isWall = (costMap[pt.x, pt.y] > wallThreshold);
+
+                    if (!tooClose && !isWall)
                     {
                         PathPoint p = new PathPoint{ edge = edge, position = pos };
                         startPoints.Add(p);
                         allLocs.Add(pt);
+                        added = true;
                         break; // Success
                     }
+                }
+                
+                // FALLBACK: Force add if failed (and we MUST have a point)
+                if (!added)
+                {
+                    // Pick random edge/pos ignoring wall check
+                    EdgeSide edge = (EdgeSide)prng.Next(0, 4);
+                    float pos = (float)prng.NextDouble();
+                    Vector2Int pt = GetEdgePoint(edge, pos, w, h);
+                    
+                    PathPoint p = new PathPoint{ edge = edge, position = pos };
+                    startPoints.Add(p);
+                    allLocs.Add(pt);
+                    // Note: Step 4 will clear the wall for this point later.
                 }
             }
             
@@ -404,6 +469,7 @@ namespace TerrainGenerator
                 if (endPoints.Count > 0 && startPoints.Count == 0 && neededS == 0)
                 {
                      // Add a Start
+                     bool addedStart = false;
                      for(int attempt=0; attempt<10; attempt++)
                      {
                         EdgeSide edge = (EdgeSide)prng.Next(0, 4);
@@ -416,13 +482,25 @@ namespace TerrainGenerator
                             if (Vector2Int.Distance(existing, pt) < minPointSeparation) { tooClose = true; break; }
                         }
                         
-                        if (!tooClose)
+                        // Check Obstacle
+                        bool isWall = (costMap[pt.x, pt.y] > wallThreshold);
+
+                        if (!tooClose && !isWall)
                         {
                             PathPoint p = new PathPoint{ edge = edge, position = pos };
                             startPoints.Add(p);
                             allLocs.Add(pt);
+                            addedStart = true;
                             break; 
                         }
+                     }
+                     if (!addedStart)
+                     {
+                         // Force Fallback
+                        EdgeSide edge = (EdgeSide)prng.Next(0, 4); 
+                        float pos = (float)prng.NextDouble();
+                        startPoints.Add(new PathPoint{ edge = edge, position = pos });
+                        allLocs.Add(GetEdgePoint(edge, pos, w, h));
                      }
                 }
             }
@@ -431,10 +509,10 @@ namespace TerrainGenerator
                 neededE = Mathf.Max(0, numberOfEnds - endPoints.Count);
             }
 
-            for(int i=0; i<neededE; i++) TryAddDistinctPoint(endPoints, w, h, prng, allLocs, startEdges);
+            for(int i=0; i<neededE; i++) TryAddDistinctPoint(endPoints, w, h, prng, allLocs, startEdges, costMap);
         }
         
-        private bool TryAddDistinctPoint(List<PathPoint> list, int w, int h, System.Random prng, List<Vector2Int> allLocs, HashSet<EdgeSide> forbiddenEdges)
+        private bool TryAddDistinctPoint(List<PathPoint> list, int w, int h, System.Random prng, List<Vector2Int> allLocs, HashSet<EdgeSide> forbiddenEdges, float[,] costMap)
         {
             int safety = 0;
             while(safety < 50)
@@ -468,6 +546,9 @@ namespace TerrainGenerator
                     }
                 }
                 
+                // Check Cost Map
+                if (costMap[pos.x, pos.y] > wallThreshold) ok = false;
+
                 if (ok)
                 {
                     list.Add(p);
@@ -475,7 +556,24 @@ namespace TerrainGenerator
                     return true;
                 }
             }
-            return false;
+            
+            // FALLBACK if strict fails but we exhausted attempts
+            // Force add random (ignoring wall check)
+            // But TryAddDistinctPoint returns bool...
+            // If it returns false, caller (GenerateDistinctPoints) does nothing?
+            // Caller: for(int i=0; i<neededE; i++) TryAddDistinctPoint(...);
+            // It assumes if TryAdd fails, we don't add.
+            // If neededE > 0, we WANT end points.
+            // So we should force add here if attempts > safety limit?
+            
+            // Force one last attempt without check
+            PathPoint finalTry = new PathPoint();
+            finalTry.edge = (EdgeSide)prng.Next(0, 4);
+            finalTry.position = (float)prng.NextDouble();
+            Vector2Int finalPos = GetEdgePoint(finalTry.edge, finalTry.position, w, h);
+            list.Add(finalTry);
+            allLocs.Add(finalPos);
+            return true;
         }
         
         // Complex logic for Trunk (includes U-Turn)
@@ -517,30 +615,25 @@ namespace TerrainGenerator
 
         // --- INeighborStitchable Implementation ---
 
+        // --- INeighborStitchable Implementation ---
+
+        private bool[] neighborExists = new bool[4]; // Left, Right, Top, Bottom
+
+        public void SetNeighborExistence(TerrainGenerator.EdgeSide side, bool exists)
+        {
+            neighborExists[(int)side] = exists;
+        }
+
         public void ClearStitching()
         {
             ClearExternalPoints();
-        }
-
-
-
-        public class TDStitchData
-        {
-            public List<PathPoint> starts = new List<PathPoint>();
-            public List<PathPoint> ends = new List<PathPoint>();
+            for(int i=0; i<4; i++) neighborExists[i] = false;
         }
 
         public void InjectEdgeData(object data, TerrainGenerator.EdgeSide side)
         {
-            var packet = data as TDStitchData;
+            var packet = data as PathStitchData;
             if (packet == null) return;
-            
-            // INVERSION LOGIC HAPPENS HERE?
-            // Or does GetEdgeData return "My Starts"?
-            // Let's assume GetEdgeData returns "What is on my edge".
-            // So packet.starts = Neighbor's Starts.
-            // packet.ends = Neighbor's Ends.
-            // Logic: Neighbor Starts -> My Ends. Neighbor Ends -> My Starts.
             
             EdgeSide localSide = MapEdgeSide(side);
             
@@ -564,7 +657,7 @@ namespace TerrainGenerator
         public object GetEdgeData(TerrainGenerator.EdgeSide side)
         {
             EdgeSide localSide = MapEdgeSide(side);
-            TDStitchData data = new TDStitchData();
+            PathStitchData data = new PathStitchData();
             
             foreach(var p in startPoints) if (p.edge == localSide) data.starts.Add(p);
             foreach(var p in endPoints) if (p.edge == localSide) data.ends.Add(p);
@@ -574,8 +667,7 @@ namespace TerrainGenerator
 
         private EdgeSide MapEdgeSide(TerrainGenerator.EdgeSide s)
         {
-            return (EdgeSide)s; // Assumes Enum int values match (Left=0, Right=1...)
-            // 0=Left, 1=Right, 2=Top, 3=Bottom. Matches standard.
+            return (EdgeSide)s; 
         }
         
         // Old Methods kept for internal compatibility or refactor?

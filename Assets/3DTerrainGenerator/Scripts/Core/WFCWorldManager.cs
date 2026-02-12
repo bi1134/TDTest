@@ -36,6 +36,7 @@ namespace TerrainGenerator
         
         // Storage
         private Dictionary<Vector2Int, WFCBuilder> loadedChunks = new Dictionary<Vector2Int, WFCBuilder>();
+        public IReadOnlyDictionary<Vector2Int, WFCBuilder> LoadedChunks => loadedChunks;
         
         // This class is responsible for Spawning Chunks and linking them.
         
@@ -287,7 +288,39 @@ namespace TerrainGenerator
              newChunk.solver.globalChunkExists = IsChunkLoaded; 
              newChunk.solver.chunkCoordinate = coord;
              newChunk.solver.worldScale = worldScale;
-             newChunk.solver.runRNG = useRNG ? runRNG : null; // Only use RNG for expansion chunks
+             newChunk.solver.chunkCoordinate = coord;
+             newChunk.solver.worldScale = worldScale;
+             
+             // Override Seed Settings for consistency
+             if (useRNG)
+             {
+                 // Use Coordinate-Based Deterministic Seed
+                 // This ensures Chunk (1,0) is always the same regardless of expansion order
+                 int coordHash = coord.x * 73856093 ^ coord.y * 19349663;
+                 int chunkSeed = runSeed ^ coordHash;
+                 
+                 newChunk.solver.runRNG = new System.Random(chunkSeed); 
+                 newChunk.useRandomSeed = false; // We use our deterministic RNG
+                 newChunk.seed = chunkSeed;      // For inspection
+             }
+             else
+             {
+                 // Start Chunk (Fixed)
+                 newChunk.solver.runRNG = null; // Will trigger WFCBuilder internal init? Or should we set it?
+                 // Start Chunk usually uses WFCBuilder's own settings. But let's enforce runSeed if set.
+                 if (runSeed != 0 && useFixedSeed)
+                 {
+                     newChunk.solver.runRNG = new System.Random(runSeed);
+                     newChunk.seed = runSeed;
+                     newChunk.useRandomSeed = false;
+                 }
+                 else
+                 {
+                     // Use whatever is in prefab or WFCBuilder default behavior
+                     newChunk.solver.runRNG = null;
+                     newChunk.useRandomSeed = false;
+                 }
+             }
              
              // Clear shared blueprint textures
              foreach (var bp in newChunk.definedBlueprints)
@@ -301,6 +334,13 @@ namespace TerrainGenerator
                  
                  stitchable.ClearStitching();
                  
+                 // Notify neighbors existence first (crucial for "Wall Detection")
+                 NotifyNeighborExistence(stitchable, coord + Vector2Int.left, EdgeSide.Left);
+                 NotifyNeighborExistence(stitchable, coord + Vector2Int.right, EdgeSide.Right);
+                 NotifyNeighborExistence(stitchable, coord + Vector2Int.up, EdgeSide.Top);
+                 NotifyNeighborExistence(stitchable, coord + Vector2Int.down, EdgeSide.Bottom);
+
+                 // Then Stitch
                  StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.left,   EdgeSide.Left,  EdgeSide.Right);
                  StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.right,  EdgeSide.Right, EdgeSide.Left);
                  StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.up,     EdgeSide.Top,   EdgeSide.Bottom);
@@ -368,6 +408,12 @@ namespace TerrainGenerator
                  Debug.Log($"[WFCWorld] Stitching {layerName}: Connecting {myEdge} with {neighborCoord}'s {neighborEdge}.");
                  myGen.InjectEdgeData(neighborData, myEdge);
             }
+        }
+        
+        private void NotifyNeighborExistence(INeighborStitchable myGen, Vector2Int neighborCoord, EdgeSide myEdge)
+        {
+             bool exists = loadedChunks.ContainsKey(neighborCoord);
+             myGen.SetNeighborExistence(myEdge, exists);
         }
 
         // --- Global Query for Visualizer ---

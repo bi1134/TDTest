@@ -24,6 +24,10 @@ namespace TerrainGenerator
         // useDualGrid moved to Layers
         public WFCDualGridManager dualGridManager = new WFCDualGridManager();
         
+        [Header("Seed Settings")]
+        public int seed;
+        public bool useRandomSeed = true;
+
         [Header("Blueprints Definitions")]
         public List<WFCBlueprintLayer> definedBlueprints = new List<WFCBlueprintLayer>();
 
@@ -58,11 +62,20 @@ namespace TerrainGenerator
             // if (solver == null) solver = new WFCSolver(); // Already initialized inline
             
             solver.OnCellCollapsed = null; // Reset events
+            solver.runRNG = null; // FORCE UNSET RNG so ExecuteAllBlueprints re-initializes it!
             
             // Validation
             if (cellPrefab == null) { Debug.LogError("WFCBuilder: Cell Prefab is missing!"); return; }
             if (unityGrid == null) { Debug.LogError("WFCBuilder: Unity Grid is missing!"); unityGrid = GetComponent<Grid>(); }
 
+            if (this != null && gameObject.activeInHierarchy) 
+            {
+               StartCoroutine(GenerateRoutine());
+            }
+        }
+        
+        private System.Collections.IEnumerator GenerateRoutine()
+        {
             // 0. Ensure Blueprints are Generated (Texture Data Ready)
             ExecuteAllBlueprints();
 
@@ -100,7 +113,8 @@ namespace TerrainGenerator
                     }
                 }
             }
-            allModules.AddRange(uniqueModules);
+            // Fix for Determinism: Sort modules by name to ensure consistent index mapping
+            allModules = uniqueModules.OrderBy(m => m.name).ToList();
 
             // 3. Setup Container
             Transform container = transform.Find("Cells Container");
@@ -165,7 +179,7 @@ namespace TerrainGenerator
             // 5. Apply Map Constraints (Pre-Collapse)
             ApplyBlueprints(size);
 
-            // 6. Run
+            // 6. Run WFC Solver
             if (useBurstAcceleration)
             {
                 var burstRunner = new WFCBurstRunner(
@@ -176,11 +190,98 @@ namespace TerrainGenerator
                     solver.OnFinished,
                     solver.OnCellCollapsed
                 );
-                StartCoroutine(burstRunner.Run(solver.maxRetries));
+                yield return StartCoroutine(burstRunner.Run(solver.maxRetries));
             }
             else
             {
-                StartCoroutine(solver.RunWFC());
+                yield return StartCoroutine(solver.RunWFC());
+            }
+            
+            // 7. Generate Blueprints (Textures)
+            // Note: We run this AGAIN here just in case? Or is it redundant?
+            // ExecuteAllBlueprints(); // Redundant. Removed. Or maybe needed for final map? 
+             // If modifiers are deterministic, it's fine.
+            // But wait, generate routine flow:
+            // 1. Solve (Cells collapsed)
+            // 2. Resolve Variations (in OnFinished)
+            // 3. Generate Blueprints?
+            // Usually blueprints define constraints BEFORE solving.
+            // But PathfindingGenerator runs AFTER? Or is it Modifier?
+            // Modifiers run inside ApplyBlueprints? No.
+            // Wait, ApplyBlueprints iterates BuildLayers and calls ForceCollapse based on COLOR.
+            // The COLOR comes from `bp.outputMap`.
+            // So `bp.Generate()` MUST run BEFORE `ApplyBlueprints`.
+            // So `ExecuteAllBlueprints()` at start (Step 0) is correct.
+            // Do we need to run it AGAIN after?
+            // Only if Modifiers depend on WFC result (e.g. modify texture based on collapse).
+            // PathfindingGenerator seems independent?
+            // But wait, visualizer applies textures to MESHES.
+            // If Modifiers update texture, we want meshes to update?
+            // Visualizer `ApplyToGrid` (if it existed) would update meshes.
+            // But Visualizer uses `solver.visualCells`.
+            // So Modifiers only affect WFC via constraints (ForceCollapse).
+            // So running ExecuteAllBlueprints at end is irrelevant for WFC constraints.
+            // BUT maybe for `SpawnObjectsFromBlueprints` we need fresh data?
+            // `Generate()` clears data.
+            // So running it once at start is enough.
+            
+            // 8. Spawn Objects (New)
+            SpawnObjectsFromBlueprints();
+        }
+        
+        private List<GameObject> spawnedObjects = new List<GameObject>();
+        
+        private void ClearSpawnedObjects()
+        {
+            foreach(var obj in spawnedObjects)
+            {
+                if (obj != null) 
+                {
+                    if (Application.isPlaying) Destroy(obj);
+                    else DestroyImmediate(obj);
+                }
+            }
+            spawnedObjects.Clear();
+        }
+        
+        private void SpawnObjectsFromBlueprints()
+        {
+            foreach(var bp in definedBlueprints)
+            {
+                if (bp.spawnCommands != null)
+                {
+                    foreach(var cmd in bp.spawnCommands)
+                    {
+                        if (cmd.prefab != null)
+                        {
+                            // Convert local grid pos to World Pos
+                            // cmd.position is likely (x, 0, y) in Grid Coords.
+                            // We need to scale by Grid Size?
+                            // Wait, PathfindingGenerator uses (x, 0, y) which are Integer Grid Coordinates.
+                            // WFCBuilder visuals are scaled by 'gridSize' (or worldScale?).
+                            // solver.worldScale is used for positioning chunks.
+                            // But CreateChunkInitialized sets: `float xPos = coord.x * chunkSize.x * worldScale;`
+                            // So the Chunk Transform is at the corner.
+                            // Local Position inside chunk = GridCoord * worldScale?
+                            // Let's check ApplyToGrid or visualizer.
+                            // `solver.GetVisualCellAt`...
+                            
+                            // WFCModule usually has size 1x1x1 in local space if scale is 1?
+                            // `worldScale` public float.
+                            // If `worldScale` is 4.0f, then cell (1,0) is at local (4, 0, 0).
+                            
+                            Vector3 localPos = new Vector3(cmd.position.x * solver.worldScale, cmd.position.y * solver.worldScale, cmd.position.z * solver.worldScale);
+                            // Adjust for cell center? Paths are on grid nodes (0..w).
+                            // If x=0, that's the center of cell 0? Or corner?
+                            // Usually center.
+            
+                            GameObject instance = Instantiate(cmd.prefab, this.transform);
+                            instance.transform.localPosition = localPos;
+                            instance.transform.localRotation = cmd.rotation;
+                            spawnedObjects.Add(instance);
+                        }
+                    }
+                }
             }
         }
         
@@ -196,11 +297,31 @@ namespace TerrainGenerator
              int h = gridSize.z;
              List<WFCBlueprintLayer> context = new List<WFCBlueprintLayer>();
 
+             // Initialize RNG if not set (Standalone Mode)
+             if (solver.runRNG == null)
+             {
+                 int initSeed = seed;
+                 if (useRandomSeed) 
+                 {
+                     initSeed = Random.Range(0, 1000000); // Unity Random
+                     seed = initSeed; // Save for Replayability
+                     Debug.Log($"[WFCBuilder] Initializing Standalone RNG with Random Seed: {initSeed}");
+                 }
+                 else
+                 {
+                     Debug.Log($"[WFCBuilder] Initializing Standalone RNG with Fixed Seed: {initSeed}");
+                 }
+                 solver.runRNG = new System.Random(initSeed);
+             }
+             
+             // Generate a master seed for blueprints
+             int blueprintSeed = solver.runRNG.Next(); 
+
              foreach(var bp in definedBlueprints)
              {
                  if(bp.active)
                  {
-                     bp.Generate(w, h, context);
+                     bp.Generate(w, h, context, blueprintSeed);
                      context.Add(bp);
                  }
              }

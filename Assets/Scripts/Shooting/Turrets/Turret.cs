@@ -17,7 +17,7 @@ public class Turret : MonoBehaviour
     //awake, hide the barrel until we bought a bullet type
     private void Awake()
     {
-        SetBarrelActive(false);
+       // SetBarrelActive(false); // Removed per new design
     }
 
     private void Start()

@@ -24,7 +24,7 @@ MonoBehaviour:
     targetLayer: 0
     tolerance: 0
   - ruleName: air
-    active: 1
+    active: 0
     sourceColor: {r: 0, g: 0, b: 0, a: 0}
     modulePrefab: {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
     targetLayer: 0

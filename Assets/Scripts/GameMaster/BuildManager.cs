@@ -6,8 +6,8 @@ public class BuildManager : MonoBehaviour
 
 
     //selection state only
-    public TurretBaseBlueprint SelectedTurret { get; private set; }
-    public BulletBlueprint SelectedBullet { get; private set; }
+    public TurretBlueprintSO SelectedTurret { get; private set; }
+    public BulletBlueprintSO SelectedBullet { get; private set; }
 
     public bool HasTurretSelection => SelectedTurret != null;
     public bool HasBulletSelection => SelectedBullet != null;
@@ -27,12 +27,12 @@ public class BuildManager : MonoBehaviour
         instance = this;
     }
 
-    public void SelectTurret(TurretBaseBlueprint turretBase)
+    public void SelectTurret(TurretBlueprintSO turretBase)
     {
         SelectedTurret = turretBase;
     }
 
-    public void SelectBullet(BulletBlueprint bullet)
+    public void SelectBullet(BulletBlueprintSO bullet)
     {
         SelectedBullet = bullet;
     }
@@ -54,6 +54,16 @@ public class BuildManager : MonoBehaviour
         PlayerStats.wallet -= SelectedTurret.cost;
         var go = Instantiate(SelectedTurret.prefab, node.GetBuildPosition(), Quaternion.identity, node.positionOffset.transform);
         node.turretBase = go;
+
+        // Initialize with default bullet if one exists
+        if (SelectedTurret.defaultBullet != null)
+        {
+            var turretBase = go.GetComponentInChildren<TurretBaseModule>();
+            if (turretBase != null)
+            {
+                turretBase.SetBulletType(SelectedTurret.defaultBullet);
+            }
+        }
 
         GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
 

@@ -11,6 +11,9 @@ namespace TerrainGenerator
         [HideInInspector] public string name; // Display name for the list
 
         public WFCModifier() { name = GetType().Name; }
+        
+        // Runtime Injection for Determinism
+        [HideInInspector] public int injectedSeed = -1;
 
         /// <summary>
         /// Apply this modifier to the given texture.

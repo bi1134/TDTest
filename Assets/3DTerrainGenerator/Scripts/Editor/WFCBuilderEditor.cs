@@ -146,6 +146,17 @@ namespace TerrainGenerator
             EditorGUILayout.PropertyField(serializedObject.FindProperty("cellPrefab"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("autoResizeGridToMap"));
             
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("cellPrefab"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("autoResizeGridToMap"));
+            
+            EditorGUILayout.Space(5);
+            EditorGUILayout.LabelField("Seed Settings (Standalone)", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("useRandomSeed"));
+            if (!serializedObject.FindProperty("useRandomSeed").boolValue)
+            {
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("seed"));
+            }
+            
             EditorGUILayout.Space(5);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("strictLayerHeight"));
             EditorGUILayout.PropertyField(serializedObject.FindProperty("defaultEmptyModule"));
