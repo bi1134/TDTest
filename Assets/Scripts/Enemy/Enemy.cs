@@ -13,11 +13,16 @@ public class Enemy : MonoBehaviour
     [Header("GDD Enemy Properties")]
     public float maxHealth = 100f;
     public float baseSpeed = 3f;
+    [Tooltip("Damage dealt to player lives when reaching the end")]
+    public int damageToPlayer = 1;
     
     [Header("Shield HP (GDD: separate health bar)")]
     [Tooltip("Shield HP absorbs incoming damage before normal health")]
     public float maxShieldHP = 0f;
     
+    [Header("Reward")]
+    [SerializeField] private int moneyReward = 10;
+
     [Header("Runtime State")]
     [SerializeField] private float currentHealth;
     [SerializeField] private float currentShieldHP;
@@ -107,8 +112,6 @@ public class Enemy : MonoBehaviour
 
         float dist = dir.magnitude;
 
-        // Debug.Log($"[Enemy] Moving to {targetPos} (Dist: {dist})");
-
         if (dist <= reachThreshold)
         {
             // Reached waypoint
@@ -135,12 +138,9 @@ public class Enemy : MonoBehaviour
     private void ReachEnd()
     {
         // Damage Player
-        PlayerStats.Lives--;
-        GameUIEvent.LivesChanged(this, PlayerStats.Lives); // Notify UI logic if event exists?
-        // Or assume PlayerStats handles events?
-        // Checking PlayerStats... assumes static access.
+        PlayerStats.Lives -= damageToPlayer;
         
-        Debug.Log("Enemy reached the end!");
+        Debug.Log($"Enemy reached the end! Dealt {damageToPlayer} damage.");
         Die();
     }
 
@@ -372,7 +372,16 @@ public class Enemy : MonoBehaviour
     private void Die()
     {
         Debug.Log($"{gameObject.name} has died!");
-        // TODO: Death effects, rewards, etc.
+        
+        if (WaveManager.Instance != null)
+        {
+            WaveManager.Instance.OnEnemyDeath();
+        }
+
+        // Add Money Reward
+        PlayerStats.wallet += moneyReward;
+        Debug.Log($"Rewarded {moneyReward} money. New Balance: {PlayerStats.wallet}");
+
         Destroy(gameObject);
     }
 

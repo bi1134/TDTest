@@ -46,6 +46,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f80453abed81fa42a503250079d0d03, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
+  maxHealth: 50
+  baseSpeed: 1
+  damageToPlayer: 8
+  maxShieldHP: 0
+  moneyReward: 10
+  currentHealth: 0
+  currentShieldHP: 0
+  currentSpeed: 0
+  hasBarrier: 0
+  barrierReduction: 0.5
+  slowMultiplier: 1
+  vulnerabilityMultiplier: 1
+  fireDOTDamagePerSecond: 0
+  fireDOTRemainingTime: 0
+  isStunned: 0
+  stunRemainingTime: 0
 --- !u!135 &3769920286161589132
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -155,4 +171,5 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}

@@ -82,6 +82,8 @@ namespace TerrainGenerator
             }
         }
 
+
+
         [ContextMenu("Generate World")]
         public void GenerateWorld()
         {
@@ -166,6 +168,12 @@ namespace TerrainGenerator
             }
             
             Debug.Log($"[WFCWorldManager] Expanded to ring {currentExpansionRing} ({ringCoords.Count} chunks)");
+            
+            // Start Next Wave Automatically
+            if(WaveManager.Instance != null) 
+            {
+                GameEvents.TriggerMapExpansionStarted(this);
+            }
         }
         
         /// <summary>
@@ -204,6 +212,12 @@ namespace TerrainGenerator
             }
             
             Debug.Log($"[WFCWorldManager] Expanded {direction} from {fromChunk} to {newCoord}");
+            
+            // Start Next Wave Automatically
+            if(WaveManager.Instance != null) 
+            {
+                GameEvents.TriggerMapExpansionStarted(this);
+            }
         }
         
         /// <summary>
@@ -488,6 +502,36 @@ namespace TerrainGenerator
             int chunkY = Mathf.FloorToInt((float)globalGridPos.z / sz);
             
             return loadedChunks.ContainsKey(new Vector2Int(chunkX, chunkY));
+        }
+        
+        /// <summary>
+        /// Gets the path endpoints for a specific chunk by querying its TowerDefensePathGenerator.
+        /// Returns a list of PathPoints indicating where paths exit this chunk.
+        /// </summary>
+        public List<TowerDefensePathGenerator.PathPoint> GetEndPointsForChunk(Vector2Int chunkCoord)
+        {
+            var result = new List<TowerDefensePathGenerator.PathPoint>();
+            
+            if (!loadedChunks.TryGetValue(chunkCoord, out WFCBuilder chunk)) return result;
+            if (chunk == null) return result;
+            
+            // Look through the chunk's blueprint layers for TowerDefensePathGenerator
+            foreach (var layer in chunk.definedBlueprints)
+            {
+                if (layer == null) continue;
+                
+                foreach (var modifier in layer.modifiers)
+                {
+                    if (modifier is TowerDefensePathGenerator pathGen)
+                    {
+                        // Return a copy of the endPoints list
+                        result.AddRange(pathGen.endPoints);
+                        break; // Assume one path generator per chunk
+                    }
+                }
+            }
+            
+            return result;
         }
     }
 }

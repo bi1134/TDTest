@@ -24,6 +24,8 @@ public class TurretPropertiesSO : ScriptableObject
     [Header("Projectile Stats (Only for Projectile Weapons)")]
     public float bulletSpeed;
     public float upwardForce;
+    [Tooltip("Minimum launch angle for Arc projectiles (lower = lower arc, higher = lob)")]
+    public float minArcAngle = 25f;
 
     // spreadDeg: cone angle in degrees. >0 = cone/ellipse, 0 = line/cross mode (uses spreadX/Y)
     public float spread;   // degrees

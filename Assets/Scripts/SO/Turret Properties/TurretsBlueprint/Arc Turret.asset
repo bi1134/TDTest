@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01fbffc06d7a1df4d9939f9399160dfc, type: 3}
   m_Name: Arc Turret
   m_EditorClassIdentifier: Assembly-CSharp::TurretBlueprintSO
-  turretName: Default turret
+  turretName: Arc Turret
   prefab: {fileID: 8195699246678471509, guid: a485e7dd51c02fe479e6a9ea3ba4f8b3, type: 3}
   cost: 150
   icon: {fileID: 0}
+  defaultBullet: {fileID: 0}
   description: dealing damage with slow shooting speed, can throw over terrain

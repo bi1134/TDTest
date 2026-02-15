@@ -13,7 +13,7 @@ public struct ImpactPayload
 
 public class BulletProjectile : MonoBehaviour
 {
-    [SerializeField] public GameObject tracer;
+    [SerializeField] private GameObject tracer;
     
     [Header("Bullet Properties (can be overridden at Initialize)")]
     [SerializeField] private BulletPropertiesSO defaultSettings;
@@ -21,8 +21,14 @@ public class BulletProjectile : MonoBehaviour
     // Runtime settings (can be passed at Initialize or use defaultSettings)
     private BulletPropertiesSO settings;
 
+    // Masks
+    [Header("Layer Masks")]
+    [SerializeField] private LayerMask enemyMask;
+    [SerializeField] private LayerMask groundMask;
+
     private int bounceRemaining;
-    public bool isActive;
+    [SerializeField] private bool isActive; // Serialized for debugging, private set
+    public bool IsActive => isActive; // Public read-only property
     private Rigidbody rb;
     private GameObject shooterGameObject;
     private float baseDamage;
@@ -196,9 +202,18 @@ public class BulletProjectile : MonoBehaviour
     private void FixedUpdate()
     {
         var activeSettings = settings ?? defaultSettings;
-        if (activeSettings != null && activeSettings.bulletDrop != 0f)
+        if (activeSettings != null)
         {
-            rb.AddForce(Vector3.down * activeSettings.bulletDrop, ForceMode.Acceleration);
+            if (activeSettings.bulletDrop != 0f)
+            {
+                rb.AddForce(Vector3.down * activeSettings.bulletDrop, ForceMode.Acceleration);
+            }
+
+            // Apply Gravity Scale
+            if (rb.useGravity && activeSettings.gravityScale != 1f)
+            {
+                rb.AddForce(Physics.gravity * (activeSettings.gravityScale - 1f), ForceMode.Acceleration);
+            }
         }
     }
 
@@ -239,7 +254,8 @@ public class BulletProjectile : MonoBehaviour
         // Should explode: either payload has AOE OR bullet type is Explosive
         bool shouldExplode = HasAOE || isExplosiveBullet;
 
-        if (collision.gameObject.CompareTag("Enemy"))
+        // Check mask for Enemy
+        if ((enemyMask.value & (1 << collision.gameObject.layer)) > 0)
         {
             if (shouldExplode)
             {
@@ -276,9 +292,8 @@ public class BulletProjectile : MonoBehaviour
         }
 
         // Check if we hit ground (for arc projectiles specifically)
-        bool isGroundHit = collision.gameObject.CompareTag("Ground") ||
-                           collision.gameObject.layer == LayerMask.NameToLayer("Ground") ||
-                           collision.gameObject.layer == LayerMask.NameToLayer("Default");
+        // Check mask for Ground
+        bool isGroundHit = (groundMask.value & (1 << collision.gameObject.layer)) > 0;
         
         // Arc projectiles spawn ground zone on ground impact immediately
         if (isArcProjectile && isGroundHit)

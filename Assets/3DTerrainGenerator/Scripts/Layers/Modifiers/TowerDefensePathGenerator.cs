@@ -68,6 +68,8 @@ namespace TerrainGenerator
         [Header("Constraint")]
         [Tooltip("The path must stay this many pixels away from the edge (except at start/end).")]
         [Range(0, 5)] public int pathPadding = 1;
+        [Tooltip("Prevents endpoints from spawning at corners (position 0.0-threshold or 1.0-threshold).")]
+        [Range(0f, 0.3f)] public float cornerExclusionZone = 0.1f;
 
         [Header("Visuals")]
         public int pathWidth = 1;
@@ -534,6 +536,14 @@ namespace TerrainGenerator
                 }
                 
                 p.position = (float)prng.NextDouble();
+                
+                // Apply Corner Exclusion (prevent endpoints at corners)
+                if (p.position < cornerExclusionZone || p.position > (1f - cornerExclusionZone))
+                {
+                    // Re-roll position to be within safe zone
+                    p.position = Mathf.Lerp(cornerExclusionZone, 1f - cornerExclusionZone, (float)prng.NextDouble());
+                }
+                
                 Vector2Int pos = GetEdgePoint(p.edge, p.position, w, h);
                 
                 // Check separation

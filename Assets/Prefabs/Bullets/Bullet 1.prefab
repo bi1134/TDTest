@@ -49,6 +49,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   tracer: {fileID: 0}
   defaultSettings: {fileID: 11400000, guid: 26a947bdd97b41b48a67bc6346d00a54, type: 2}
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 128
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 256
   isActive: 1
 --- !u!135 &6403962706135204397
 SphereCollider:

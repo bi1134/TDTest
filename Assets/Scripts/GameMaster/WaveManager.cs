@@ -1,7 +1,6 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
-using Systems; // Namespace for Pathfinder
 using TerrainGenerator; // Namespace for WFC
 
 public class WaveManager : MonoBehaviour
@@ -17,10 +16,12 @@ public class WaveManager : MonoBehaviour
     [Header("Wave Configuration (Simple List for Phase E)")]
     public List<WaveConfig> waves = new List<WaveConfig>();
 
-    [Header("Debug")]
     public int currentWaveIndex = 0;
     public bool isWaveActive = false;
     public int enemiesAlive = 0;
+    
+    // Phase F: Event Driven
+    private bool startWaveWhenPathReady = false;
 
     // References
     private WFCWorldManager worldManager;
@@ -29,9 +30,17 @@ public class WaveManager : MonoBehaviour
     [System.Serializable]
     public class WaveConfig
     {
+        public WaveConfigSO config; // Optional Override
+        public List<EnemyGroup> groups = new List<EnemyGroup>();
+    }
+
+    [System.Serializable]
+    public class EnemyGroup
+    {
         public GameObject enemyPrefab;
         public int count;
         public float rate;
+        public float delayBefore; // Delay before starting this group
     }
 
     private void Awake()
@@ -47,9 +56,37 @@ public class WaveManager : MonoBehaviour
     private void Start()
     {
         worldManager = FindFirstObjectByType<WFCWorldManager>();
-        pathfinder = FindFirstObjectByType<Pathfinder>();
+        if (pathfinder == null) 
+            pathfinder = FindFirstObjectByType<Pathfinder>();
 
         if (pathfinder == null) Debug.LogError("WaveManager needs Pathfinder!");
+    }
+
+    private void OnEnable()
+    {
+        GameEvents.OnMapExpansionStarted += HandleMapExpansionStarted;
+        GameEvents.OnPathfinderGraphRebuilt += HandlePathfinderGraphRebuilt;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnMapExpansionStarted -= HandleMapExpansionStarted;
+        GameEvents.OnPathfinderGraphRebuilt -= HandlePathfinderGraphRebuilt;
+    }
+
+    private void HandleMapExpansionStarted(object sender, System.EventArgs e)
+    {
+        // When map expands, we want to start wave as soon as path is ready
+        startWaveWhenPathReady = true;
+    }
+
+    private void HandlePathfinderGraphRebuilt(object sender, System.EventArgs e)
+    {
+        if (startWaveWhenPathReady)
+        {
+            StartNextWave();
+            startWaveWhenPathReady = false;
+        }
     }
 
     private void Update()
@@ -80,7 +117,9 @@ public class WaveManager : MonoBehaviour
             if (waves.Count > 0)
             {
                 var lastWave = waves[waves.Count - 1]; // Reuse last config
-                lastWave.count += 5; // Difficulty scaling
+                // Create scaled copy? Hard to deep copy struct in list.
+                // Just respawn it.
+                // Difficulty scaling via Enemy? Not implemented yet.
                 StartCoroutine(SpawnWave(lastWave));
             }
         }
@@ -97,18 +136,28 @@ public class WaveManager : MonoBehaviour
     private IEnumerator SpawnWave(WaveConfig wave)
     {
         isWaveActive = true;
-        enemiesAlive = wave.count;
+        
+        // Calculate Total Enemies
+        enemiesAlive = 0;
+        if (wave.config != null)
+        {
+             foreach(var g in wave.config.groups) enemiesAlive += g.count;
+        }
+        else
+        {
+             foreach(var g in wave.groups) enemiesAlive += g.count;
+        }
         
         // Get ALL spawn points
         List<Vector3> spawnPoints = pathfinder.GetAllSpawnPoints();
         
-        if (spawnPoints.Count == 0)
+        if (spawnPoints.Count == 0 || enemiesAlive == 0)
         {
-           Debug.LogError("No valid spawn points found! Is the map generated?");
+           if (spawnPoints.Count == 0) Debug.LogError("No valid spawn points found! Is the map generated?");
            isWaveActive = false;
            yield break;
         }
-        
+
         // Pre-calculate paths for all points
         Dictionary<Vector3, List<Vector3>> spawnPaths = new Dictionary<Vector3, List<Vector3>>();
         List<Vector3> validSpawns = new List<Vector3>();
@@ -130,15 +179,23 @@ public class WaveManager : MonoBehaviour
             yield break;
         }
 
-        for (int i = 0; i < wave.count; i++)
+        // Spawn Groups Sequentially
+        List<EnemyGroup> groupsToSpawn = (wave.config != null) ? wave.config.groups : wave.groups;
+
+        foreach(var group in groupsToSpawn)
         {
-            // Pick Random Spawn Point (Round Robin or Pure Random)
-            // Use Random.Range to pick one
-            Vector3 chosenSpawn = validSpawns[Random.Range(0, validSpawns.Count)];
-            List<Vector3> chosenPath = spawnPaths[chosenSpawn];
-            
-            SpawnEnemy(wave.enemyPrefab, chosenSpawn, chosenPath);
-            yield return new WaitForSeconds(1f / wave.rate);
+            if (group.delayBefore > 0) yield return new WaitForSeconds(group.delayBefore);
+
+            for (int i = 0; i < group.count; i++)
+            {
+                // Pick Random Spawn Point (Round Robin or Pure Random)
+                Vector3 chosenSpawn = validSpawns[Random.Range(0, validSpawns.Count)];
+                List<Vector3> chosenPath = spawnPaths[chosenSpawn];
+                
+                SpawnEnemy(group.enemyPrefab, chosenSpawn, chosenPath);
+                
+                if (group.rate > 0) yield return new WaitForSeconds(1f / group.rate);
+            }
         }
         
         currentWaveIndex++;
@@ -174,14 +231,7 @@ public class WaveManager : MonoBehaviour
         isWaveActive = false;
         Debug.Log("Wave Complete!");
         
-        // Phase F Integration: Trigger Map Expansion Here?
-        // Or Enable "Expand" Button in UI?
-        
-        // For now, auto-expand for testing?
-        if (worldManager != null)
-        {
-             // worldManager.ExpandNextRing(); // Commented out for now, let player control or UI flow
-             // Debug.Log("Map Expansion Available!");
-        }
+        // Pass wave number (1-indexed for display)
+        GameEvents.TriggerWaveCompleted(this, currentWaveIndex + 1);
     }
 }

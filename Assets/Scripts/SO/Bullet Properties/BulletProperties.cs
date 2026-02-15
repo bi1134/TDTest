@@ -13,6 +13,8 @@ public class BulletPropertiesSO : ScriptableObject
     public int maxBounces = 2;
     public float maxLifeTime = 3f;
     public float bulletDrop;
+    [Tooltip("Multiplier for gravity. 1 = normal, >1 = falls faster.")]
+    public float gravityScale = 1f;
     public string bulletPoolTag = "Bullet";
     
     [Header("Visuals")]

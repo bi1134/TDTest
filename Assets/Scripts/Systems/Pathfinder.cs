@@ -3,26 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using TerrainGenerator;
 
-namespace Systems
+public class Pathfinder : MonoBehaviour
 {
-    public class Pathfinder : MonoBehaviour
-    {
-        public static Pathfinder Instance { get; private set; }
+    public static Pathfinder Instance { get; private set; }
 
         [Header("Settings")]
         [Tooltip("Name of the module that represents the path for enemies")]
         public List<string> pathKeywords = new List<string>() { "Path" }; // Changed to list for flexibility 
         [Tooltip("Name of the module that represents the Player Base (destination)")]
-        public string baseModuleName = "Base"; 
+        public string baseModuleName = "Base";
         public bool debugDrawGraph = false;
 
         // Graph Data
         private HashSet<Vector3Int> pathNodes = new HashSet<Vector3Int>();
         private Dictionary<Vector3Int, List<Vector3Int>> adjacency = new Dictionary<Vector3Int, List<Vector3Int>>();
-        
+
         // References
         private WFCWorldManager worldManager;
-        private Vector3Int baseNode = Vector3Int.zero; 
+        private Vector3Int baseNode = Vector3Int.zero;
         private bool baseFound = false;
 
         private void Awake()
@@ -61,8 +59,9 @@ namespace Systems
 
         private void OnChunkGeneratedHandler(WFCBuilder chunk)
         {
-            // Should valid check?
-            RebuildGraph();
+            // Immediate rebuild so WaveManager has correct graph
+            RebuildGraphImmediate();
+            GameEvents.TriggerPathfinderGraphRebuilt(this);
         }
 
         [ContextMenu("Debug Rebuild")]
@@ -95,21 +94,34 @@ namespace Systems
             StartCoroutine(RebuildRoutine());
         }
 
+
+
+        /// <summary>
+        /// Scans the WFC world and rebuilds the navigation graph immediately.
+        /// Use this for synchronous operations like WFC generation loops.
+        /// </summary>
+        public void RebuildGraphImmediate()
+        {
+            PerformRebuild();
+            GameEvents.TriggerPathfinderGraphRebuilt(this);
+        }
+
         private System.Collections.IEnumerator RebuildRoutine()
         {
             rebuildPending = true;
             yield return new WaitForEndOfFrame(); // Wait for all chunks to likely finish
-            
+
             PerformRebuild();
+            GameEvents.TriggerPathfinderGraphRebuilt(this);
             rebuildPending = false;
         }
 
         private void PerformRebuild()
         {
-            if (worldManager == null) 
+            if (worldManager == null)
             {
-                 worldManager = FindFirstObjectByType<WFCWorldManager>();
-                 if (worldManager == null) return;
+                worldManager = FindFirstObjectByType<WFCWorldManager>();
+                if (worldManager == null) return;
             }
 
             pathNodes.Clear();
@@ -121,45 +133,45 @@ namespace Systems
             {
                 Vector2Int chunkCoord = kvp.Key;
                 WFCBuilder chunk = kvp.Value;
-                
+
                 if (chunk == null || chunk.solver == null) continue;
 
                 var cells = chunk.solver.allCells; // Ensure this is accessible
                 foreach (var cell in cells)
                 {
-                if (cell.Collapsed && cell.PossibleModules.Count > 0)
-                {
-                    // Check if it's a Path
-                    // We check if the module Name contains our keyword
-                    var module = cell.PossibleModules[0];
-                    if (module == null) continue;
-
-                    if (module == null) continue;
-
-                    string modName = module.name;
-                    
-
-                    bool isPath = pathKeywords.Any(k => modName.Contains(k)) && !modName.Contains("Empty");
-                    bool isBase = modName.Contains(baseModuleName);
-                    
-                    // Special case for "Path_Variant" if needed, though Contains("Path") should cover it
-
-
-                    if (isPath || isBase)
+                    if (cell.Collapsed && cell.PossibleModules.Count > 0)
                     {
-                        Vector3Int globalPos = GetGlobalPos(chunkCoord, cell.GridPosition, chunk.gridSize);
-                        pathNodes.Add(globalPos);
+                        // Check if it's a Path
+                        // We check if the module Name contains our keyword
+                        var module = cell.PossibleModules[0];
+                        if (module == null) continue;
 
-                        if (isBase)
+                        if (module == null) continue;
+
+                        string modName = module.name;
+
+
+                        bool isPath = pathKeywords.Any(k => modName.Contains(k)) && !modName.Contains("Empty");
+                        bool isBase = modName.Contains(baseModuleName);
+
+                        // Special case for "Path_Variant" if needed, though Contains("Path") should cover it
+
+
+                        if (isPath || isBase)
                         {
-                            baseNode = globalPos;
-                            baseFound = true;
+                            Vector3Int globalPos = GetGlobalPos(chunkCoord, cell.GridPosition, chunk.gridSize);
+                            pathNodes.Add(globalPos);
+
+                            if (isBase)
+                            {
+                                baseNode = globalPos;
+                                baseFound = true;
+                            }
                         }
                     }
                 }
-                }
             }
-            
+
             // If no explicit Base module found, try to use the center of Chunk (0,0)
             if (!baseFound)
             {
@@ -167,18 +179,18 @@ namespace Systems
                 // Assuming chunk size is even, e.g. 20x10x20 -> center at 10,0,10
                 Vector3Int size = worldManager.chunkSize;
                 baseNode = new Vector3Int(size.x / 2, 0, size.z / 2);
-                
+
                 // Ensure it's in pathNodes to be reachable (force add if likely accurate)
                 if (!pathNodes.Contains(baseNode) && pathNodes.Count > 0)
                 {
                     // If fallback isn't a path, navigation might fail. 
                     // Search for closest path node to (0,0,0)?
                     Debug.LogWarning("[Pathfinder] Base module not found and default center is not a path. Navigation may fail.");
-                    
+
                     // Try to find closest path node to center
                     float minDist = float.MaxValue;
                     Vector3Int closest = Vector3Int.zero;
-                    foreach(var node in pathNodes)
+                    foreach (var node in pathNodes)
                     {
                         float d = node.sqrMagnitude;
                         if (d < minDist)
@@ -208,13 +220,12 @@ namespace Systems
                 adjacency[node] = neighbors;
             }
 
-            Debug.Log($"[Pathfinder] Graph Rebuilt. Nodes: {pathNodes.Count}, Base: {baseNode}");
         }
 
         public List<Vector3> GetPathToBase(Vector3 startWorldPos)
         {
             Vector3Int startNode = WorldToGrid(startWorldPos);
-            
+
             // Validate Start
             if (!pathNodes.Contains(startNode))
             {
@@ -226,12 +237,12 @@ namespace Systems
             // BFS
             Queue<Vector3Int> frontier = new Queue<Vector3Int>();
             frontier.Enqueue(startNode);
-            
+
             Dictionary<Vector3Int, Vector3Int> cameFrom = new Dictionary<Vector3Int, Vector3Int>();
             cameFrom[startNode] = startNode;
 
             bool found = false;
-            
+
             // Optimized: Bi-directional search could be faster, but simple BFS is fine for this scale
             while (frontier.Count > 0)
             {
@@ -261,7 +272,7 @@ namespace Systems
             // Reconstruct
             List<Vector3> path = new List<Vector3>();
             Vector3Int curr = baseNode;
-            
+
             // Trace back from End to Start
             while (curr != startNode)
             {
@@ -269,16 +280,16 @@ namespace Systems
                 curr = cameFrom[curr];
             }
             path.Add(GridToWorld(startNode));
-            
+
             // Path is currently [Base, ..., Start]
             // We want [Start, ..., Base]?
             // Usually path followers want [Next, Next, ..., End]
             // So we reverse it.
             path.Reverse();
-            
+
             return path;
         }
-        
+
         /// <summary>
         /// Finds a valid spawn point on the path at the furthest distance from the base.
         /// Useful for testing or spawning waves.
@@ -299,7 +310,7 @@ namespace Systems
                     furthest = node;
                 }
             }
-            
+
             return GridToWorld(furthest);
         }
 
@@ -308,17 +319,17 @@ namespace Systems
             List<Vector3> spawns = new List<Vector3>();
             if (pathNodes.Count == 0) return spawns;
 
-            foreach(var node in pathNodes)
+            foreach (var node in pathNodes)
             {
                 if (node == baseNode) continue;
-                
+
                 // Check if leaf (1 neighbor)
                 if (adjacency.ContainsKey(node) && adjacency[node].Count == 1)
                 {
                     spawns.Add(GridToWorld(node));
                 }
             }
-            
+
             // Fallback: If no leaves found (e.g. loop), use furthest
             if (spawns.Count == 0)
             {
@@ -339,9 +350,9 @@ namespace Systems
 
             foreach (var node in pathNodes)
             {
-                int d = (node.x - gridPos.x) * (node.x - gridPos.x) + 
+                int d = (node.x - gridPos.x) * (node.x - gridPos.x) +
                         (node.z - gridPos.z) * (node.z - gridPos.z);
-                
+
                 if (d < minSqDist)
                 {
                     minSqDist = d;
@@ -368,7 +379,7 @@ namespace Systems
             float s = worldManager.worldScale;
             // Assuming 0,0,0 world is 0,0,0 grid
             // Grid Coords = Floor(World / Scale)
-            
+
             return new Vector3Int(
                 Mathf.FloorToInt(worldPos.x / s),
                 Mathf.FloorToInt(worldPos.y / s),
@@ -402,7 +413,7 @@ namespace Systems
                     Debug.DrawLine(origin, dest, Color.blue);
                 }
             }
-            
+
             // Draw Base
             if (baseFound || pathNodes.Contains(baseNode))
             {
@@ -410,5 +421,34 @@ namespace Systems
                 Debug.DrawRay(b, Vector3.up * 10, Color.red);
             }
         }
+        /// <summary>
+        /// Checks if a path node exists at the specified edge of a chunk.
+        /// Used for visualizing expansion opportunities.
+        /// </summary>
+        public bool HasPathEndingAt(Vector2Int chunkCoord, TerrainGenerator.EdgeSide side)
+        {
+            if (worldManager == null) return false;
+
+            Vector3Int chunkSize = worldManager.chunkSize;
+
+            // Use Global Grid Coordinates
+            int startX = chunkCoord.x * chunkSize.x;
+            int startZ = chunkCoord.y * chunkSize.z;
+            int endX = startX + chunkSize.x - 1;
+            int endZ = startZ + chunkSize.z - 1;
+
+            // Iterate through all path nodes and check boundary conditions
+            foreach (var node in pathNodes)
+            {
+                if (side == TerrainGenerator.EdgeSide.Left && node.x == startX) return true;
+                if (side == TerrainGenerator.EdgeSide.Right && node.x == endX) return true;
+                // Top = Z+ (Forward)
+                if (side == TerrainGenerator.EdgeSide.Top && node.z == endZ) return true;
+                // Bottom = Z- (Back)
+                if (side == TerrainGenerator.EdgeSide.Bottom && node.z == startZ) return true;
+            }
+
+            return false;
+        }
     }
-}
+

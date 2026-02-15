@@ -22,8 +22,9 @@ MonoBehaviour:
   damage: 10
   fireRate: 0.5
   bulletsPerTap: 1
-  bulletSpeed: 10
-  upwardForce: 0
+  bulletSpeed: 20
+  upwardForce: 5.66
+  minArcAngle: -14
   spread: 0
   spreadX: 0
   spreadY: 0

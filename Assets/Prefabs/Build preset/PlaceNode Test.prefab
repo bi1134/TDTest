@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8517856028697982970}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: SpawnPivot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -43,7 +43,7 @@ GameObject:
   - component: {fileID: 8043970487159285966}
   - component: {fileID: 1545557273090029401}
   - component: {fileID: 3876561842097756596}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: PlaceNode Test
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -181,7 +181,7 @@ GameObject:
   - component: {fileID: 230699074183251659}
   - component: {fileID: 8988711232988587296}
   - component: {fileID: 7037409180611212989}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Cube
   m_TagString: Untagged
   m_Icon: {fileID: 0}

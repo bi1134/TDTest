@@ -75,7 +75,19 @@ public class BuildManager : MonoBehaviour
     {
         if (!HasBulletSelection || turretBase == null) return false;
 
+        // Check if player can afford the bullet
+        if (PlayerStats.wallet < SelectedBullet.cost)
+        {
+            print("Not enough money to buy that bullet!");
+            return false;
+        }
+
+        // Deduct cost
+        PlayerStats.wallet -= SelectedBullet.cost;
+        
+        // Install bullet
         turretBase.SetBulletType(SelectedBullet);
+        
         if (!continuousInstall) ClearBulletSelection();
         return true;
     }

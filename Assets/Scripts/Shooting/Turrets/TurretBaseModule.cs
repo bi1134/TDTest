@@ -248,7 +248,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                 break;
 
             case FireMode.Arc:
-                barrel.FireArc(target.position, weaponStats);
+                barrel.FireArc(target.position, weaponStats, weaponStats.minArcAngle);
                 break;
                 
             case FireMode.Beam:
