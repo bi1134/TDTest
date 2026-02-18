@@ -33,6 +33,14 @@ public class Pathfinder : MonoBehaviour
             Instance = this;
         }
 
+        private void OnDestroy()
+        {
+            if (Instance == this)
+            {
+                Instance = null;
+            }
+        }
+
         private void Start()
         {
             worldManager = FindFirstObjectByType<WFCWorldManager>();

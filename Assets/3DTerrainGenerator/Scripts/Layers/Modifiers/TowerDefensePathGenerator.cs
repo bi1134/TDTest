@@ -47,6 +47,9 @@ namespace TerrainGenerator
         [Header("Manual Points")]
         public List<PathPoint> startPoints = new List<PathPoint>();
         public List<PathPoint> endPoints = new List<PathPoint>();
+
+        [Header("Constraints")]
+        public List<EdgeSide> forceForbiddenEdges = new List<EdgeSide>();
         
         [Header("Neighbor Stitching")]
         [Tooltip("The name of the layer to connect to.")]
@@ -385,7 +388,19 @@ namespace TerrainGenerator
                 bool added = false;
                 for(int attempt=0; attempt<10; attempt++)
                 {
-                    EdgeSide edge = (EdgeSide)prng.Next(0, 4);
+                    // Respect forbidden edges
+                    EdgeSide edge;
+                    if (forceForbiddenEdges.Count > 0 && forceForbiddenEdges.Count < 4)
+                    {
+                        List<EdgeSide> allowed = new List<EdgeSide> { EdgeSide.Left, EdgeSide.Right, EdgeSide.Top, EdgeSide.Bottom };
+                        allowed.RemoveAll(e => forceForbiddenEdges.Contains(e));
+                        if (allowed.Count == 0) edge = (EdgeSide)prng.Next(0, 4);
+                        else edge = allowed[prng.Next(allowed.Count)];
+                    }
+                    else
+                    {
+                        edge = (EdgeSide)prng.Next(0, 4);
+                    }
                     // Bias?
                     
                     float pos = (float)prng.NextDouble();
@@ -426,7 +441,12 @@ namespace TerrainGenerator
             }
             
             // Collect used Start edges to forbid them for Ends (Updated with ALL starts)
-            HashSet<EdgeSide> startEdges = new HashSet<EdgeSide>(startPoints.Select(p => p.edge));
+            // AND include globally forbidden edges
+            HashSet<EdgeSide> forbiddenForEnds = new HashSet<EdgeSide>(startPoints.Select(p => p.edge));
+            if(forceForbiddenEdges != null) 
+            {
+                foreach(var e in forceForbiddenEdges) forbiddenForEnds.Add(e);
+            }
             
             // Fill Ends (Exits)
             int neededE = 0;
@@ -511,7 +531,7 @@ namespace TerrainGenerator
                 neededE = Mathf.Max(0, numberOfEnds - endPoints.Count);
             }
 
-            for(int i=0; i<neededE; i++) TryAddDistinctPoint(endPoints, w, h, prng, allLocs, startEdges, costMap);
+            for(int i=0; i<neededE; i++) TryAddDistinctPoint(endPoints, w, h, prng, allLocs, forbiddenForEnds, costMap);
         }
         
         private bool TryAddDistinctPoint(List<PathPoint> list, int w, int h, System.Random prng, List<Vector2Int> allLocs, HashSet<EdgeSide> forbiddenEdges, float[,] costMap)

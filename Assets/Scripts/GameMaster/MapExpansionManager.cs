@@ -14,14 +14,18 @@ public class MapExpansionManager : MonoBehaviour
     
     private List<MapExpansionButton> activeButtons = new List<MapExpansionButton>();
 
+    private bool isPreparationPhase = false;
+
     private void OnEnable()
     {
         GameEvents.OnGameStateChanged += HandleGameStateChanged;
+        GameEvents.OnChunkGenerated += HandleChunkGenerated;
     }
 
     private void OnDisable()
     {
         GameEvents.OnGameStateChanged -= HandleGameStateChanged;
+        GameEvents.OnChunkGenerated -= HandleChunkGenerated;
     }
 
     private void HandleGameStateChanged(object sender, GameEvents.GameStateChangedEventArgs e)
@@ -29,11 +33,22 @@ public class MapExpansionManager : MonoBehaviour
         // Show buttons during Preparation, hide during Playing/GameOver
         if (e.newState == GameHandler.GameState.Preparation)
         {
+            isPreparationPhase = true;
             ShowExpansionOptions();
         }
         else
         {
+            isPreparationPhase = false;
             HideAllButtons();
+        }
+    }
+
+    private void HandleChunkGenerated(object sender, GameEvents.ChunkGeneratedEventArgs e)
+    {
+        // If a new chunk appears while we are in Preparation mode (e.g. late load on start), refresh buttons
+        if (isPreparationPhase)
+        {
+            ShowExpansionOptions();
         }
     }
 

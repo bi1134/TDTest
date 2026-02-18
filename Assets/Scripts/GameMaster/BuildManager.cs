@@ -27,6 +27,14 @@ public class BuildManager : MonoBehaviour
         instance = this;
     }
 
+    private void OnDestroy()
+    {
+        if (instance == this)
+        {
+            instance = null;
+        }
+    }
+
     public void SelectTurret(TurretBlueprintSO turretBase)
     {
         SelectedTurret = turretBase;

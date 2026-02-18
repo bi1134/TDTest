@@ -40,9 +40,13 @@ namespace TerrainGenerator
         
         // This class is responsible for Spawning Chunks and linking them.
         
-        private void Start()
+        private void Awake()
         {
             InitializeRNG();
+        }
+
+        private void Start()
+        {
             GenerateInitialChunk();
         }
         
@@ -78,7 +82,11 @@ namespace TerrainGenerator
             string[] parts = chunk.name.Split('_');
             if (parts.Length == 3 && int.TryParse(parts[1], out int x) && int.TryParse(parts[2], out int y))
             {
-                RefreshNeighborBorders(new Vector2Int(x, y));
+                Vector2Int coord = new Vector2Int(x, y);
+                RefreshNeighborBorders(coord);
+                
+                // Notify Game Systems
+                GameEvents.TriggerChunkGenerated(this, coord);
             }
         }
 
@@ -204,7 +212,8 @@ namespace TerrainGenerator
                 return;
             }
             
-            CreateChunkInitialized(newCoord, expansionChunkPrefab, useRNG: true);
+            // Pass fromChunk as parent to prevent back-looping to Start
+            CreateChunkInitialized(newCoord, expansionChunkPrefab, useRNG: true, parentCoord: fromChunk);
             if (loadedChunks.TryGetValue(newCoord, out var chunk))
             {
                 chunk.Generate();
@@ -278,7 +287,7 @@ namespace TerrainGenerator
         }
         
         // Renamed from CreateChunk to separate instantiation from generation
-        private void CreateChunkInitialized(Vector2Int coord, WFCBuilder prefab, bool useRNG)
+        private void CreateChunkInitialized(Vector2Int coord, WFCBuilder prefab, bool useRNG, Vector2Int? parentCoord = null)
         {
              if (loadedChunks.ContainsKey(coord)) return;
              if (prefab == null)
@@ -319,10 +328,10 @@ namespace TerrainGenerator
              }
              else
              {
-                 // Start Chunk (Fixed)
-                 newChunk.solver.runRNG = null; // Will trigger WFCBuilder internal init? Or should we set it?
-                 // Start Chunk usually uses WFCBuilder's own settings. But let's enforce runSeed if set.
-                 if (runSeed != 0 && useFixedSeed)
+                 // Start Chunk (Fixed Rules but Deterministic Seed)
+                 // We must ALWAYS apply the runSeed if we want reproducibility.
+                 
+                 if (runSeed != 0)
                  {
                      newChunk.solver.runRNG = new System.Random(runSeed);
                      newChunk.seed = runSeed;
@@ -330,7 +339,7 @@ namespace TerrainGenerator
                  }
                  else
                  {
-                     // Use whatever is in prefab or WFCBuilder default behavior
+                     // Fallback
                      newChunk.solver.runRNG = null;
                      newChunk.useRandomSeed = false;
                  }
@@ -340,26 +349,45 @@ namespace TerrainGenerator
              foreach (var bp in newChunk.definedBlueprints)
                  bp.outputMap = null;
              
-             // 2. Stitching Logic
-             foreach(var bp in newChunk.definedBlueprints)
-             {
-                 var stitchable = bp.modifiers.FirstOrDefault(m => m is INeighborStitchable) as INeighborStitchable;
-                 if (stitchable == null) continue;
-                 
-                 stitchable.ClearStitching();
-                 
-                 // Notify neighbors existence first (crucial for "Wall Detection")
-                 NotifyNeighborExistence(stitchable, coord + Vector2Int.left, EdgeSide.Left);
-                 NotifyNeighborExistence(stitchable, coord + Vector2Int.right, EdgeSide.Right);
-                 NotifyNeighborExistence(stitchable, coord + Vector2Int.up, EdgeSide.Top);
-                 NotifyNeighborExistence(stitchable, coord + Vector2Int.down, EdgeSide.Bottom);
+              // 2. Stitching Logic
+              foreach(var bp in newChunk.definedBlueprints)
+              {
+                  var stitchable = bp.modifiers.FirstOrDefault(m => m is INeighborStitchable) as INeighborStitchable;
+                  if (stitchable == null) continue;
+                  
+                  stitchable.ClearStitching();
+                  
+                  // Notify neighbors existence first (crucial for "Wall Detection")
+                  NotifyNeighborExistence(stitchable, coord + Vector2Int.left, EdgeSide.Left);
+                  NotifyNeighborExistence(stitchable, coord + Vector2Int.right, EdgeSide.Right);
+                  NotifyNeighborExistence(stitchable, coord + Vector2Int.up, EdgeSide.Top);
+                  NotifyNeighborExistence(stitchable, coord + Vector2Int.down, EdgeSide.Bottom);
 
-                 // Then Stitch
-                 StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.left,   EdgeSide.Left,  EdgeSide.Right);
-                 StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.right,  EdgeSide.Right, EdgeSide.Left);
-                 StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.up,     EdgeSide.Top,   EdgeSide.Bottom);
-                 StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.down,   EdgeSide.Bottom,EdgeSide.Top);
-             }
+                  // LOOP PREVENTION LOGIC:
+                  // Check if any neighbor is the Start Chunk (centerChunk).
+                  // If we are touching Start Chunk, but it is NOT our parent (we didn't expand FROM it),
+                  // then we should FORBID connection to it to prevent looping back to spawn.
+                  
+                  // Check Left
+                  bool skipLeft = ShouldSkipStitch(coord + Vector2Int.left, parentCoord);
+                  if (skipLeft) ForbidEdge(bp, EdgeSide.Left);
+                  else StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.left, EdgeSide.Left, EdgeSide.Right);
+
+                  // Check Right
+                  bool skipRight = ShouldSkipStitch(coord + Vector2Int.right, parentCoord);
+                  if (skipRight) ForbidEdge(bp, EdgeSide.Right);
+                  else StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.right, EdgeSide.Right, EdgeSide.Left);
+
+                  // Check Top
+                  bool skipTop = ShouldSkipStitch(coord + Vector2Int.up, parentCoord);
+                  if (skipTop) ForbidEdge(bp, EdgeSide.Top);
+                  else StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.up, EdgeSide.Top, EdgeSide.Bottom);
+
+                  // Check Bottom
+                  bool skipBottom = ShouldSkipStitch(coord + Vector2Int.down, parentCoord);
+                  if (skipBottom) ForbidEdge(bp, EdgeSide.Bottom);
+                  else StitchWithNeighbor(stitchable, bp.layerName, coord + Vector2Int.down, EdgeSide.Bottom, EdgeSide.Top);
+              }
              
              // NO Generate() here.
              
@@ -532,6 +560,30 @@ namespace TerrainGenerator
             }
             
             return result;
+        }
+        private bool ShouldSkipStitch(Vector2Int neighborCoord, Vector2Int? parentCoord)
+        {
+            // If neighbor is Start Chunk, and it is NOT our parent -> Loop Detected! Skip Stitch.
+            if (neighborCoord == centerChunk)
+            {
+                if (parentCoord.HasValue && neighborCoord == parentCoord.Value) return false; // Is parent, allow stitch
+                return true; // Is loop, skip stitch
+            }
+            return false;
+        }
+
+        private void ForbidEdge(WFCBlueprintLayer bp, EdgeSide edge)
+        {
+            var gen = bp.modifiers.OfType<TowerDefensePathGenerator>().FirstOrDefault();
+            if (gen != null)
+            {
+                var tdEdge = (TowerDefensePathGenerator.EdgeSide)edge;
+                if (!gen.forceForbiddenEdges.Contains(tdEdge))
+                {
+                    gen.forceForbiddenEdges.Add(tdEdge);
+                    Debug.Log($"[WFCWorldManager] Forbidden connection to Start Chunk on edge {edge} to prevent loop.");
+                }
+            }
         }
     }
 }

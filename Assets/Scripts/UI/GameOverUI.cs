@@ -2,21 +2,29 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// Game Over UI - Displays wave count when player dies.
-/// Visibility controlled by UIManager - this just updates the display.
+/// Game Over UI Controller - Manages visibility and data display.
+/// This script should be on an ALWAYS-ACTIVE parent object.
+/// Assign the actual UI panel as a child reference.
 /// </summary>
 public class GameOverUI : MonoBehaviour
 {
     [Header("UI References")]
+    [SerializeField] private GameObject panelContainer; // The actual UI panel (can be inactive)
     [SerializeField] private TextMeshProUGUI levelDefendedText;
 
     private int lastCompletedWave = 0;
 
     private void Start()
     {
-        // Subscribe to events to track wave progress
+        // This runs even if panelContainer is inactive
         GameEvents.OnWaveCompleted += HandleWaveCompleted;
         GameEvents.OnPlayerDied += HandlePlayerDied;
+        
+        // Ensure panel starts hidden
+        if (panelContainer != null)
+        {
+            panelContainer.SetActive(false);
+        }
     }
 
     private void OnDestroy()
@@ -28,14 +36,20 @@ public class GameOverUI : MonoBehaviour
     private void HandleWaveCompleted(object sender, GameEvents.WaveCompletedEventArgs e)
     {
         // Track last completed wave
-        lastCompletedWave = e.waveNumber -1; //-1 because waveNumber is 1-indexed for display, but we want to show how many were fully defended
+        lastCompletedWave = e.waveNumber;
         Debug.Log($"[GameOverUI] Tracked wave completion: {lastCompletedWave}");
     }
 
     private void HandlePlayerDied(object sender, System.EventArgs e)
     {
-        // Update the display text (UIManager will handle showing this panel)
+        // Update the display text
         UpdateDisplay();
+        
+        // Show panel
+        if (panelContainer != null)
+        {
+            panelContainer.SetActive(true);
+        }
     }
 
     private void UpdateDisplay()
@@ -46,6 +60,23 @@ public class GameOverUI : MonoBehaviour
         }
 
         Debug.Log($"[GameOverUI] Updated display - Defended {lastCompletedWave} waves.");
+    }
+
+    // Called by UIManager
+    public void Show()
+    {
+        if (panelContainer != null)
+        {
+            panelContainer.SetActive(true);
+        }
+    }
+
+    public void Hide()
+    {
+        if (panelContainer != null)
+        {
+            panelContainer.SetActive(false);
+        }
     }
 
     // Optional: Button callbacks

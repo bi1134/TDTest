@@ -117,7 +117,11 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
             {
                 // Duration finished, start reload
                 isBeamFiring = false;
-                fireCooldown = 1f / weaponStats.fireRate;
+                
+                // Apply fire rate augment
+                float fireRateMultiplier = AugmentManager.GetStatMultiplier(AugmentType.FireRate);
+                float modifiedFireRate = weaponStats.fireRate * fireRateMultiplier;
+                fireCooldown = 1f / modifiedFireRate;
             }
         }
         else
@@ -159,7 +163,10 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         fireCooldown -= Time.deltaTime;
         if (fireCooldown <= 0f)
         {
-            fireCooldown = 1f / weaponStats.fireRate;
+            // Apply fire rate augment
+            float fireRateMultiplier = AugmentManager.GetStatMultiplier(AugmentType.FireRate);
+            float modifiedFireRate = weaponStats.fireRate * fireRateMultiplier;
+            fireCooldown = 1f / modifiedFireRate;
             Fire();
         }
     }

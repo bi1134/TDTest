@@ -44,8 +44,19 @@ public class PlayerStats : MonoBehaviour
         }
     }
     public int startLives = 20;
+
+    /// <summary>
+    /// Reset all static data - called when starting a new game.
+    /// </summary>
+    public static void ResetStaticData()
+    {
+        // Use backing fields to avoid triggering side effects (like Death event)
+        _wallet = 0;
+        _lives = 0;
+        Debug.Log("[PlayerStats] Static data reset");
+    }
     
-    private void OnEnable()
+    private void Start()
     {
         wallet = startMoney;
         Lives = startLives;

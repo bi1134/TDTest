@@ -41,7 +41,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5637598869104021391}
   - component: {fileID: 8043970487159285966}
-  - component: {fileID: 1545557273090029401}
   - component: {fileID: 3876561842097756596}
   m_Layer: 8
   m_Name: Spawn
@@ -88,22 +87,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 1, z: 1}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &1545557273090029401
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6782390953603596957}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a313c8387eddbe64c97574026a1f0408, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  hoverColor: {r: 0.5622641, g: 0.5598771, b: 0.5590815, a: 0}
-  positionOffset: {fileID: 2343672315981754541}
-  rend: {fileID: 7037409180611212989}
-  turretBase: {fileID: 0}
 --- !u!114 &3876561842097756596
 MonoBehaviour:
   m_ObjectHideFlags: 0

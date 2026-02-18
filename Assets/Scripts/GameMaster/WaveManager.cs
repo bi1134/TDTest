@@ -74,6 +74,14 @@ public class WaveManager : MonoBehaviour
         GameEvents.OnPathfinderGraphRebuilt -= HandlePathfinderGraphRebuilt;
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
     private void HandleMapExpansionStarted(object sender, System.EventArgs e)
     {
         // When map expands, we want to start wave as soon as path is ready
