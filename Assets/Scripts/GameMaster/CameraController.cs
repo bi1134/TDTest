@@ -57,6 +57,7 @@ public class CameraController : MonoBehaviour
             HandleDragPan();
 
         HandleZoom();
+        HandleFocus();
     }
 
     #region Movement
@@ -64,6 +65,8 @@ public class CameraController : MonoBehaviour
     private void HandleMovement()
     {
         Vector2 input = gameInput.GetMoveInput();
+        if (input.sqrMagnitude > 0.01f) isFocusing = false; // Interrupt focus
+
         Vector3 dir = transform.forward * input.y + transform.right * input.x;
         transform.position += dir * moveSpeed * Time.deltaTime;
     }
@@ -191,4 +194,30 @@ public class CameraController : MonoBehaviour
     }
 
     #endregion
+
+    // Focus Logic
+    private Vector3 targetFocusPos;
+    private bool isFocusing = false;
+    private float focusSpeed = 5f;
+
+    public void FocusOn(Vector3 targetPos)
+    {
+        targetFocusPos = targetPos;
+        // Keep current Y? Or zoom in? User said "lerp toward it".
+        // Usually we keep Y and just pan.
+        targetFocusPos.y = transform.position.y; 
+        isFocusing = true;
+    }
+
+    private void HandleFocus()
+    {
+        if (isFocusing)
+        {
+            transform.position = Vector3.Lerp(transform.position, targetFocusPos, Time.deltaTime * focusSpeed);
+            if (Vector3.Distance(transform.position, targetFocusPos) < 0.1f)
+            {
+                isFocusing = false;
+            }
+        }
+    }
 }

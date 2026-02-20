@@ -64,10 +64,12 @@ public class BuildManager : MonoBehaviour
         node.turretBase = go;
 
         // Initialize with default bullet if one exists
-        if (SelectedTurret.defaultBullet != null)
+        var turretBase = go.GetComponentInChildren<TurretBaseModule>();
+        if (turretBase != null)
         {
-            var turretBase = go.GetComponentInChildren<TurretBaseModule>();
-            if (turretBase != null)
+            turretBase.Initialize(SelectedTurret); // Initialize stats and investment
+            
+            if (SelectedTurret.defaultBullet != null)
             {
                 turretBase.SetBulletType(SelectedTurret.defaultBullet);
             }
@@ -88,6 +90,14 @@ public class BuildManager : MonoBehaviour
         {
             print("Not enough money to buy that bullet!");
             return false;
+        }
+
+        // Check if Turret already has this bullet
+        if (turretBase.HasBullet(SelectedBullet))
+        {
+            Debug.Log("Turret already has this bullet type!");
+            return false; // Or true if we want to consume click but do nothing? False ensures no clear selection if continuousInstall is false?
+            // User said: "It won't change anything- not decreasing my money"
         }
 
         // Deduct cost

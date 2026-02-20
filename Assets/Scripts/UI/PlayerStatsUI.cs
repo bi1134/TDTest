@@ -25,6 +25,30 @@ public class PlayerStatsUI : MonoBehaviour
                livesText.text = "Lives: " + e.currentLives;
     }
 
+    [Header("Pause Control")]
+    [SerializeField] private UnityEngine.UI.Button pauseButton;
+    [SerializeField] private PauseManager pauseManager;
+
+    private void Awake()
+    {
+        if (pauseButton != null)
+        {
+            pauseButton.onClick.AddListener(() =>
+            {
+                if (pauseManager != null)
+                {
+                    pauseManager.Pause();
+                }
+                else
+                {
+                    // Fallback search
+                    var pm = FindAnyObjectByType<PauseManager>();
+                    if (pm != null) pm.Pause();
+                }
+            });
+        }
+    }
+
     private void AssignSignal()
     {
         GameUIEvent.OnMoneyChanged += UpdateMoney;

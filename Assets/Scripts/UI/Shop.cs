@@ -9,14 +9,13 @@ public class Shop : MonoBehaviour
     public GameObject shopItemPrefab;
     public Transform shopItemsContainer;
 
+    [Header("Cancel Selection")]
+    [SerializeField] private UnityEngine.UI.Button cancelButton;
+
     private BuildManager buildManager;
 
     //assign form start  because instance is awake
-    private void Start()
-    {
-        buildManager = BuildManager.instance;
-        PopulateShop();
-    }
+
 
     private void PopulateShop()
     {
@@ -63,5 +62,37 @@ public class Shop : MonoBehaviour
     {
         print("Bullet Selected: " + bullet.bulletName);
         buildManager.SelectBullet(bullet);
+    }
+
+    private void Start()
+    {
+        buildManager = BuildManager.instance;
+        PopulateShop();
+        
+        if (cancelButton != null)
+        {
+            cancelButton.onClick.AddListener(OnCancelClicked);
+        }
+    }
+
+    private void Update()
+    {
+        if (buildManager == null) return;
+
+        bool hasSelection = buildManager.HasTurretSelection || buildManager.HasBulletSelection;
+        
+        if (cancelButton != null && cancelButton.gameObject.activeSelf != hasSelection)
+        {
+            cancelButton.gameObject.SetActive(hasSelection);
+        }
+    }
+
+    private void OnCancelClicked()
+    {
+        if (buildManager != null)
+        {
+            buildManager.ClearTurretSelection();
+            buildManager.ClearBulletSelection();
+        }
     }
 }

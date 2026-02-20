@@ -61,7 +61,7 @@ public class Enemy : MonoBehaviour
     private int targetWaypointIndex;
     private float reachThreshold = 0.5f;
 
-    public void Start()
+    protected virtual void Start()
     {
         currentHealth = maxHealth;
         // Optional: currentShieldHP = maxShieldHP; if desired
@@ -87,7 +87,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void Update()
+    protected virtual void Update()
     {
         // Update stats
         UpdateCurrentSpeed();
@@ -101,7 +101,7 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void MoveAlongPath()
+    protected virtual void MoveAlongPath()
     {
         if (pathWaypoints == null || targetWaypointIndex >= pathWaypoints.Count) return;
 
@@ -135,13 +135,53 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void ReachEnd()
+    /// <summary>
+    /// Calculates approximate distance to the end of the path.
+    /// Used for "First" and "Last" targeting modes.
+    /// </summary>
+    public float GetDistanceToGoal()
+    {
+        if (pathWaypoints == null || targetWaypointIndex >= pathWaypoints.Count) return 0f;
+
+        // Distance to next waypoint
+        float dist = Vector3.Distance(transform.position, pathWaypoints[targetWaypointIndex]);
+
+        // Add remaining segments
+        for (int i = targetWaypointIndex; i < pathWaypoints.Count - 1; i++)
+        {
+            dist += Vector3.Distance(pathWaypoints[i], pathWaypoints[i + 1]);
+        }
+
+        return dist;
+    }
+
+    protected virtual void ReachEnd()
     {
         // Damage Player
         PlayerStats.Lives -= damageToPlayer;
         
         Debug.Log($"Enemy reached the end! Dealt {damageToPlayer} damage.");
         Die();
+    }
+
+    protected virtual void Die()
+    {
+        Debug.Log($"{gameObject.name} has died!");
+        
+        // Assuming PlayerStats and WaveManager are accessible
+        // You might need to add 'using static YourNamespace.PlayerStats;' or similar
+        // if PlayerStats is a static class not in the global namespace.
+        // For WaveManager, ensure it's a singleton or accessible instance.
+        if (WaveManager.Instance != null)
+        {
+            WaveManager.Instance.OnEnemyDeath();
+        }
+
+        // Add Money Reward
+        PlayerStats.wallet += moneyReward;
+        Debug.Log($"Rewarded {moneyReward} money. New Balance: {PlayerStats.wallet}");
+
+        Destroy(gameObject);
     }
 
 
@@ -259,14 +299,14 @@ public class Enemy : MonoBehaviour
 
     private System.Collections.IEnumerator RemoveSlowAfterDelay(float delay, float appliedMultiplier)
     {
-        yield return new WaitForSeconds(delay);
+        yield return Helpers.GetWaitForSecond(delay);
         // Only remove if this was the active slow
         if (Mathf.Approximately(slowMultiplier, appliedMultiplier))
         {
             slowMultiplier = 1f;
         }
     }
-
+    
     /// <summary>
     /// GDD: Vulnerability increases damage to normal health only (no Shield HP effect)
     /// </summary>
@@ -287,7 +327,7 @@ public class Enemy : MonoBehaviour
 
     private System.Collections.IEnumerator RemoveVulnerabilityAfterDelay(float delay, float appliedMultiplier)
     {
-        yield return new WaitForSeconds(delay);
+        yield return Helpers.GetWaitForSecond(delay);
         if (Mathf.Approximately(vulnerabilityMultiplier, appliedMultiplier))
         {
             vulnerabilityMultiplier = 1f;
@@ -369,21 +409,7 @@ public class Enemy : MonoBehaviour
 
     #endregion
 
-    private void Die()
-    {
-        Debug.Log($"{gameObject.name} has died!");
-        
-        if (WaveManager.Instance != null)
-        {
-            WaveManager.Instance.OnEnemyDeath();
-        }
 
-        // Add Money Reward
-        PlayerStats.wallet += moneyReward;
-        Debug.Log($"Rewarded {moneyReward} money. New Balance: {PlayerStats.wallet}");
-
-        Destroy(gameObject);
-    }
 
     #region Debug/Editor Helpers
 

@@ -42,12 +42,22 @@ namespace TerrainGenerator
         
         private void Awake()
         {
+            // Check for Main Menu Seed Override
+            if (GameSettings.FixedSeed.HasValue)
+            {
+                runSeed = GameSettings.FixedSeed.Value;
+                useFixedSeed = true;
+                Debug.Log($"[WFCWorldManager] Using Fixed Seed from Settings: {runSeed}");
+            }
+            
             InitializeRNG();
         }
 
         private void Start()
         {
             GenerateInitialChunk();
+            // Broadcast Seed to UI/Game Systems (in Start to ensure listeners are ready)
+            GameEvents.TriggerRunSeedSet(this, runSeed);
         }
         
         private void InitializeRNG()

@@ -21,7 +21,7 @@ public class WaveManager : MonoBehaviour
     public int enemiesAlive = 0;
     
     // Phase F: Event Driven
-    private bool startWaveWhenPathReady = false;
+    // private bool startWaveWhenPathReady = false; // Removed to fix warning CS0414
 
     // References
     private WFCWorldManager worldManager;
@@ -84,35 +84,38 @@ public class WaveManager : MonoBehaviour
 
     private void HandleMapExpansionStarted(object sender, System.EventArgs e)
     {
-        // When map expands, we want to start wave as soon as path is ready
-        startWaveWhenPathReady = true;
+        // Fix Race Condition: 
+        // WFC Generation might be synchronous. If so, PathRebuilt fired BEFORE this event.
+        // Instead of waiting for a flag, we just FORCE a rebuild and start.
+        StartNextWave(true);
     }
 
     private void HandlePathfinderGraphRebuilt(object sender, System.EventArgs e)
     {
-        if (startWaveWhenPathReady)
-        {
-            StartNextWave();
-            startWaveWhenPathReady = false;
-        }
+        // Removed dependency on startWaveWhenPathReady to avoid race conditions.
+        // We manually force rebuild in StartNextWave anyway.
     }
 
     private void Update()
     {
         if (inputs.IsTestPressed())
         {
-            Debug.Log("[WaveManager] Space pressed - Starting Next Wave");
-            StartNextWave();
+            // Check if Upgrade UI is open and has a target
+            if (TurretUpgradeUI.Instance != null && TurretUpgradeUI.Instance.HasTarget)
+            {
+                var cam = FindFirstObjectByType<CameraController>();
+                if (cam != null) cam.FocusOn(TurretUpgradeUI.Instance.GetTargetPosition());
+            }
         }
     }
 
     // Public method to start next wave (UI button hook)
-    public void StartNextWave()
+    public void StartNextWave(bool forceRebuild = true)
     {
         if (isWaveActive) return;
         
         // Before starting, ensure path is valid!
-        RebuildPath();
+        if (forceRebuild) RebuildPath();
         
         if (currentWaveIndex < waves.Count)
         {
@@ -124,10 +127,7 @@ public class WaveManager : MonoBehaviour
             // Loop last wave with scaling difficulty?
             if (waves.Count > 0)
             {
-                var lastWave = waves[waves.Count - 1]; // Reuse last config
-                // Create scaled copy? Hard to deep copy struct in list.
-                // Just respawn it.
-                // Difficulty scaling via Enemy? Not implemented yet.
+                var lastWave = waves[waves.Count - 1]; 
                 StartCoroutine(SpawnWave(lastWave));
             }
         }
@@ -137,7 +137,8 @@ public class WaveManager : MonoBehaviour
     {
         if (pathfinder != null)
         {
-            pathfinder.RebuildGraph();
+            // Sync rebuild to ensure spawn points are valid immediately
+            pathfinder.RebuildGraphImmediate();
         }
     }
 
@@ -162,12 +163,13 @@ public class WaveManager : MonoBehaviour
         if (spawnPoints.Count == 0 || enemiesAlive == 0)
         {
            if (spawnPoints.Count == 0) Debug.LogError("No valid spawn points found! Is the map generated?");
+           
            isWaveActive = false;
+           GameEvents.TriggerWaveStartFailed(this); // FAIL
            yield break;
         }
 
-        // Pre-calculate paths for all points
-        Dictionary<Vector3, List<Vector3>> spawnPaths = new Dictionary<Vector3, List<Vector3>>();
+        // Pre-calculate valid spawn points
         List<Vector3> validSpawns = new List<Vector3>();
 
         foreach(var sp in spawnPoints)
@@ -175,7 +177,6 @@ public class WaveManager : MonoBehaviour
             List<Vector3> p = pathfinder.GetPathToBase(sp);
             if (p != null && p.Count > 0)
             {
-                spawnPaths[sp] = p;
                 validSpawns.Add(sp);
             }
         }
@@ -184,25 +185,31 @@ public class WaveManager : MonoBehaviour
         {
             Debug.LogError("No valid paths to base found from any spawn point!");
             isWaveActive = false;
+            GameEvents.TriggerWaveStartFailed(this); // FAIL
             yield break;
         }
+
+        // SUCCESS - Trigger Wave Started Event (Switches GameState to Playing)
+        GameEvents.TriggerWaveStarted(this);
 
         // Spawn Groups Sequentially
         List<EnemyGroup> groupsToSpawn = (wave.config != null) ? wave.config.groups : wave.groups;
 
         foreach(var group in groupsToSpawn)
         {
-            if (group.delayBefore > 0) yield return new WaitForSeconds(group.delayBefore);
+            if (group.delayBefore > 0) yield return Helpers.GetWaitForSecond(group.delayBefore);
 
             for (int i = 0; i < group.count; i++)
             {
-                // Pick Random Spawn Point (Round Robin or Pure Random)
                 Vector3 chosenSpawn = validSpawns[Random.Range(0, validSpawns.Count)];
-                List<Vector3> chosenPath = spawnPaths[chosenSpawn];
+                List<Vector3> chosenPath = pathfinder.GetVariedPath(chosenSpawn);
                 
-                SpawnEnemy(group.enemyPrefab, chosenSpawn, chosenPath);
+                if (chosenPath != null)
+                {
+                    SpawnEnemy(group.enemyPrefab, chosenSpawn, chosenPath);
+                }
                 
-                if (group.rate > 0) yield return new WaitForSeconds(1f / group.rate);
+                if (group.rate > 0) yield return Helpers.GetWaitForSecond(1f / group.rate);
             }
         }
         

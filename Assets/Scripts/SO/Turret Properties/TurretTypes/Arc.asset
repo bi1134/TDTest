@@ -15,22 +15,23 @@ MonoBehaviour:
   weaponName: 0
   groundMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 257
   enemyMask:
     serializedVersion: 2
     m_Bits: 128
   damage: 10
   fireRate: 0.5
   bulletsPerTap: 1
-  bulletSpeed: 20
-  upwardForce: 5.66
-  minArcAngle: -14
-  spread: 0
+  bulletSpeed: 3
+  upwardForce: 3
+  minArcAngle: 10
+  accuracyError: 0
+  spread: 3
   spreadX: 0
   spreadY: 0
   fireMode: 4
   burstCount: 3
-  burstInterval: 0.05
+  burstInterval: 0.01
   beamDuration: 3
   beamShotInterval: 1.75
   beamEffectInterval: 0.5

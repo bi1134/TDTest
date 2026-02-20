@@ -101,4 +101,25 @@ public static class GameEvents
     {
        OnAugmentSelected?.Invoke(sender, new AugmentSelectedEventArgs { selectedAugment = selectedAugment });
     }
+
+    // Seed Event
+    public static event EventHandler<int> OnRunSeedSet;
+    public static void TriggerRunSeedSet(object sender, int seed)
+    {
+        OnRunSeedSet?.Invoke(sender, seed);
+    }
+
+    // Wave Spawning Events (Fix for Spawning Race Condition)
+    public static event EventHandler OnWaveStarted;
+    public static void TriggerWaveStarted(object sender)
+    {
+        OnWaveStarted?.Invoke(sender, EventArgs.Empty);
+    }
+
+    public static event EventHandler OnWaveStartFailed;
+    public static void TriggerWaveStartFailed(object sender)
+    {
+        Debug.LogError("[GameEvents] Wave Start Failed! Path not found or timeout.");
+        OnWaveStartFailed?.Invoke(sender, EventArgs.Empty);
+    }
 }

@@ -14,11 +14,44 @@ public class GameOverUI : MonoBehaviour
 
     private int lastCompletedWave = 0;
 
-    private void Start()
+    // Seed UI
+    [SerializeField] private TextMeshProUGUI seedText;
+    [SerializeField] private UnityEngine.UI.Button copySeedButton;
+    private int currentSeed = 0;
+
+    [Header("Buttons")]
+    [SerializeField] private UnityEngine.UI.Button retryButton;
+    [SerializeField] private UnityEngine.UI.Button quitButton; // Quit returns to Main Menu
+
+    private void Awake()
     {
-        // This runs even if panelContainer is inactive
+        // Subscribe early
         GameEvents.OnWaveCompleted += HandleWaveCompleted;
         GameEvents.OnPlayerDied += HandlePlayerDied;
+        GameEvents.OnRunSeedSet += HandleRunSeedSet;
+
+        if (copySeedButton != null)
+        {
+            copySeedButton.onClick.AddListener(() =>
+            {
+                if (seedText != null)
+                {
+                    GUIUtility.systemCopyBuffer = seedText.text.Replace("Seed: ", "");
+                    Debug.Log("[GameOverUI] Seed copied to clipboard");
+                }
+            });
+        }
+        
+        if (retryButton != null)
+        {
+            retryButton.onClick.AddListener(RestartGame);
+        }
+
+        if (quitButton != null)
+        {
+            // Quit button goes to Main Menu (as requested)
+            quitButton.onClick.AddListener(ReturnToMainMenu);
+        }
         
         // Ensure panel starts hidden
         if (panelContainer != null)
@@ -26,49 +59,29 @@ public class GameOverUI : MonoBehaviour
             panelContainer.SetActive(false);
         }
     }
-
+    
+    // Remove Start since we used Awake
+    // OnDestroy must match Awake subscriptions
     private void OnDestroy()
     {
         GameEvents.OnWaveCompleted -= HandleWaveCompleted;
         GameEvents.OnPlayerDied -= HandlePlayerDied;
+        GameEvents.OnRunSeedSet -= HandleRunSeedSet;
+    }
+
+    private void HandleRunSeedSet(object sender, int seed)
+    {
+        currentSeed = seed;
     }
 
     private void HandleWaveCompleted(object sender, GameEvents.WaveCompletedEventArgs e)
     {
-        // Track last completed wave
         lastCompletedWave = e.waveNumber;
-        Debug.Log($"[GameOverUI] Tracked wave completion: {lastCompletedWave}");
     }
 
     private void HandlePlayerDied(object sender, System.EventArgs e)
     {
-        // Update the display text
-        UpdateDisplay();
-        
-        // Show panel
-        if (panelContainer != null)
-        {
-            panelContainer.SetActive(true);
-        }
-    }
-
-    private void UpdateDisplay()
-    {
-        if (levelDefendedText != null)
-        {
-            levelDefendedText.text = $"{lastCompletedWave} Level{(lastCompletedWave == 1 ? "" : "s")}";
-        }
-
-        Debug.Log($"[GameOverUI] Updated display - Defended {lastCompletedWave} waves.");
-    }
-
-    // Called by UIManager
-    public void Show()
-    {
-        if (panelContainer != null)
-        {
-            panelContainer.SetActive(true);
-        }
+        Show();
     }
 
     public void Hide()
@@ -79,11 +92,39 @@ public class GameOverUI : MonoBehaviour
         }
     }
 
-    // Optional: Button callbacks
+    private void UpdateDisplay()
+    {
+        if (levelDefendedText != null)
+        {
+            levelDefendedText.text = $"{lastCompletedWave} Level{(lastCompletedWave == 1 ? "" : "s")}";
+        }
+    }
+
     public void RestartGame()
     {
-        UnityEngine.SceneManagement.SceneManager.LoadScene(
-            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+        Loader.Load(Loader.Scene.GameScene);
+    }
+
+    public void ReturnToMainMenu()
+    {
+        Loader.Load(Loader.Scene.MainMenuScene);
+    }
+    
+    public void Show()
+    {
+        UpdateDisplay();
+        
+        // Update Seed
+         if (seedText != null)
+        {
+            // Use local currentSeed
+            seedText.text = "Seed: " + currentSeed.ToString();
+        }
+
+        if (panelContainer != null)
+        {
+            panelContainer.SetActive(true);
+        }
     }
 
     public void QuitGame()

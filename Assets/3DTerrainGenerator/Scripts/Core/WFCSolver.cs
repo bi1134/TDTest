@@ -206,7 +206,7 @@ namespace TerrainGenerator
                 if (contradictionFound)
                 {
                     currentRetries++;
-                    yield return new WaitForSeconds(0.1f); // Brief pause before restart
+                    yield return Helpers.GetWaitForSecond(0.1f); // Brief pause before restart
                     continue; // Restart outer loop
                 }
             }

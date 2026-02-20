@@ -34,14 +34,17 @@ public class GameHandler : MonoBehaviour
         // Listen to game events
         GameEvents.OnWaveCompleted += HandleWaveCompleted;
         GameEvents.OnPlayerDied += HandlePlayerDied;
-        GameEvents.OnMapExpansionStarted += HandleMapExpansionStarted;
+        
+        // OLD: GameEvents.OnMapExpansionStarted += HandleMapExpansionStarted;
+        // NEW: Wait for WaveManager to actually start spawning before switching state
+        GameEvents.OnWaveStarted += HandleWaveStarted;
     }
 
     private void OnDisable()
     {
         GameEvents.OnWaveCompleted -= HandleWaveCompleted;
         GameEvents.OnPlayerDied -= HandlePlayerDied;
-        GameEvents.OnMapExpansionStarted -= HandleMapExpansionStarted;
+        GameEvents.OnWaveStarted -= HandleWaveStarted;
     }
 
     private void Update()
@@ -58,9 +61,9 @@ public class GameHandler : MonoBehaviour
     }
 
     // Event Handlers
-    private void HandleMapExpansionStarted(object sender, System.EventArgs e)
+    private void HandleWaveStarted(object sender, System.EventArgs e)
     {
-        // When player clicks expand button → Start wave → Playing state
+        // Now valid to switch to Playing
         if (currentState == GameState.Preparation)
         {
             ChangeState(GameState.Playing);

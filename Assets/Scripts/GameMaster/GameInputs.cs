@@ -16,6 +16,15 @@ public class GameInputs : MonoBehaviour
         // Check for pause input (Escape key)
         if (inputActions.Player.Escape.WasPressedThisFrame())
         {
+            // Check if we are in Build Mode/Selection Mode
+            if (BuildManager.instance != null && (BuildManager.instance.HasTurretSelection || BuildManager.instance.HasBulletSelection))
+            {
+                BuildManager.instance.ClearTurretSelection();
+                BuildManager.instance.ClearBulletSelection();
+                Debug.Log("[GameInputs] Cancelled Build Selection");
+                return; // Consume input, do not pause
+            }
+
             GameEvents.TriggerPauseAction(this);
         }
     }

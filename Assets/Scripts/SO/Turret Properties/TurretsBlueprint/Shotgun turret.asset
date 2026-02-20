@@ -16,4 +16,5 @@ MonoBehaviour:
   prefab: {fileID: 8195699246678471509, guid: 9d69872158f7c1145887a76bb382659c, type: 3}
   cost: 150
   icon: {fileID: 0}
+  defaultBullet: {fileID: 11400000, guid: 024da10928c6dfd4889a8c3ff7f65c05, type: 2}
   description: dealing spread damage with slow shooting speed

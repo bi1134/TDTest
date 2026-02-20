@@ -27,6 +27,9 @@ public class TurretPropertiesSO : ScriptableObject
     [Tooltip("Minimum launch angle for Arc projectiles (lower = lower arc, higher = lob)")]
     public float minArcAngle = 25f;
 
+    [Tooltip("Accuracy error in degrees (0 = perfect accuracy)")]
+    public float accuracyError = 0f;
+
     // spreadDeg: cone angle in degrees. >0 = cone/ellipse, 0 = line/cross mode (uses spreadX/Y)
     public float spread;   // degrees
     public float spreadX;  // multiplier in cone mode, or half-extent (deg) in line mode

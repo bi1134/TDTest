@@ -16,4 +16,5 @@ MonoBehaviour:
   prefab: {fileID: 8195699246678471509, guid: cf8dceba3d92df840b3e4833a100c47e, type: 3}
   cost: 200
   icon: {fileID: 0}
+  defaultBullet: {fileID: 11400000, guid: 024da10928c6dfd4889a8c3ff7f65c05, type: 2}
   description: dealing damage with fixed amount of bullets

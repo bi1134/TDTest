@@ -50,6 +50,12 @@ MonoBehaviour:
   target: {fileID: 0}
   parentNode: {fileID: -7834384760599585665}
   hoverColor: {r: 0, g: 0, b: 0, a: 0}
+  targetRenderer: {fileID: 0}
+  turretName: 
+  description: 
+  currentLevel: 1
+  maxLevel: 100
+  totalInvestment: 0
 --- !u!1 &6606203468786333734
 GameObject:
   m_ObjectHideFlags: 0
@@ -139,6 +145,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!65 &2197829539672763028
 BoxCollider:
@@ -210,9 +217,11 @@ MonoBehaviour:
   baseModule: {fileID: 102870318669079821}
   partToRotate: {fileID: 7723144627346556375}
   turretBarrel: {fileID: 6090276878392155312}
-  range: 5
+  range: 3.5
   rotationSpeed: 10
   enemyTag: Enemy
+  accuracyError: 0
+  targetingMode: 2
 --- !u!1001 &7506700285158966461
 PrefabInstance:
   m_ObjectHideFlags: 0

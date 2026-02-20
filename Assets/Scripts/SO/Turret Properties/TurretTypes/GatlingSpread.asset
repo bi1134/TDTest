@@ -13,15 +13,25 @@ MonoBehaviour:
   m_Name: GatlingSpread
   m_EditorClassIdentifier: 
   weaponName: 0
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 257
+  enemyMask:
+    serializedVersion: 2
+    m_Bits: 128
   damage: 1
   fireRate: 15
   bulletsPerTap: 1
   bulletSpeed: 20
-  bulletLifetime: 1
+  upwardForce: 0
+  minArcAngle: 25
+  accuracyError: 0
   spread: 0
   spreadX: 14.5
   spreadY: 0
-  upwardForce: 0
   fireMode: 0
   burstCount: 2
-  burstInterval: 0.05
+  burstInterval: 0.01
+  beamDuration: 3
+  beamShotInterval: 1.75
+  beamEffectInterval: 0.5

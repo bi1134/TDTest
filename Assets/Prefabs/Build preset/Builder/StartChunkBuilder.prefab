@@ -862,6 +862,7 @@ MonoBehaviour:
         endPoints:
         - edge: 3
           position: 0.25018346
+        forceForbiddenEdges: 
         inputLayerName: 
         stitchDirection: 1
         stitchEnabled: 1

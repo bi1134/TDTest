@@ -18,10 +18,15 @@ public class PauseUI : MonoBehaviour
 
     [Header("Manager Reference")]
     [SerializeField] private PauseManager pauseManager; // Reference to pause manager
-    [SerializeField] private TerrainGenerator.WFCWorldManager worldManager; // Reference to get seed
+
+    private int currentSeed = 0;
 
     private void Awake()
     {
+        // Subscribe to events EARLY
+        GameEvents.OnPauseStateChanged += HandlePauseStateChanged;
+        GameEvents.OnRunSeedSet += HandleRunSeedSet;
+        
         // Set up button listeners (like MainMenuUI pattern)
         if (resumeButton != null)
         {
@@ -72,12 +77,6 @@ public class PauseUI : MonoBehaviour
                 Loader.Load(Loader.Scene.MainMenuScene);
             });
         }
-    }
-
-    private void Start()
-    {
-        // Subscribe to pause events (runs even if panelContainer is inactive)
-        GameEvents.OnPauseStateChanged += HandlePauseStateChanged;
         
         // Ensure panel starts hidden
         if (panelContainer != null)
@@ -85,10 +84,19 @@ public class PauseUI : MonoBehaviour
             panelContainer.SetActive(false);
         }
     }
+    
+    // Start removed
 
     private void OnDestroy()
     {
         GameEvents.OnPauseStateChanged -= HandlePauseStateChanged;
+        GameEvents.OnRunSeedSet -= HandleRunSeedSet;
+    }
+
+    private void HandleRunSeedSet(object sender, int seed)
+    {
+        currentSeed = seed;
+        UpdateSeedDisplay();
     }
 
     private void HandlePauseStateChanged(object sender, GameEvents.PauseStateChangedEventArgs e)
@@ -108,19 +116,9 @@ public class PauseUI : MonoBehaviour
     {
         if (seedText != null)
         {
-            if (worldManager == null)
-            {
-                worldManager = FindAnyObjectByType<TerrainGenerator.WFCWorldManager>();
-            }
-
-            if (worldManager != null)
-            {
-                seedText.text = "Seed: " + worldManager.runSeed.ToString();
-            }
-            else
-            {
-                seedText.text = "Seed: Unknown";
-            }
+            // If seed is 0, it might not be set yet or it's actually 0. 
+            // Better to show it if we have it.
+            seedText.text = "Seed: " + currentSeed.ToString();
         }
     }
 }

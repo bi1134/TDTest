@@ -227,7 +227,151 @@ public class Pathfinder : MonoBehaviour
                 }
                 adjacency[node] = neighbors;
             }
+            
+            GenerateDistanceMap(); // Pre-calculate distances for AI
 
+        }
+
+        // --- Distance Map for Varied Pathing ---
+        private Dictionary<Vector3Int, int> distanceMap = new Dictionary<Vector3Int, int>();
+
+        private void GenerateDistanceMap()
+        {
+            distanceMap.Clear();
+            if (!pathNodes.Contains(baseNode)) return;
+
+            Queue<Vector3Int> frontier = new Queue<Vector3Int>();
+            frontier.Enqueue(baseNode);
+            distanceMap[baseNode] = 0;
+
+            while (frontier.Count > 0)
+            {
+                var current = frontier.Dequeue();
+
+                if (adjacency.TryGetValue(current, out var neighbors))
+                {
+                    foreach (var next in neighbors)
+                    {
+                        if (!distanceMap.ContainsKey(next))
+                        {
+                            distanceMap[next] = distanceMap[current] + 1;
+                            frontier.Enqueue(next);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns a path from start to base.
+        /// Uses the distance map to randomly choose valid next steps, ensuring variety.
+        /// </summary>
+        public List<Vector3> GetVariedPath(Vector3 startWorldPos)
+        {
+            if (distanceMap.Count == 0) GenerateDistanceMap();
+
+            Vector3Int current = WorldToGrid(startWorldPos);
+            
+            // Validate Start (Find closest if off-grid)
+            if (!pathNodes.Contains(current))
+            {
+                current = GetClosestPathNode(current);
+                if (!pathNodes.Contains(current)) return null;
+            }
+
+            List<Vector3> path = new List<Vector3>();
+            path.Add(GridToWorld(current));
+            
+            HashSet<Vector3Int> visited = new HashSet<Vector3Int>();
+            visited.Add(current);
+
+            // Max steps safety to prevent infinite loops (though BFS guarantees no loops if strictly decreasing)
+            int safety = 0;
+            while (current != baseNode && safety < 1000)
+            {
+                safety++;
+                
+                if (!adjacency.TryGetValue(current, out var neighbors)) break;
+
+                // Find all neighbors that are closer to the base
+                int currentDist = distanceMap.ContainsKey(current) ? distanceMap[current] : int.MaxValue;
+                List<Vector3Int> validNextSteps = new List<Vector3Int>();
+
+                // Find all neighbors that rely on the distance map
+                // To allow variety (sub-optimal paths), we consider neighbors even if they are 'farther' 
+                // but we weight them lower. We MUST avoid backtracking to visited nodes to prevent loops.
+                
+                List<Vector3Int> candidates = new List<Vector3Int>();
+                List<float> weights = new List<float>();
+                float totalWeight = 0f;
+
+                foreach (var next in neighbors)
+                {
+                    if (distanceMap.TryGetValue(next, out int nextDist))
+                    {
+                        // Prevent backtracking (simple check against current path)
+                        // Note: This makes it O(N^2) effectively if path is long, but N is small (map size).
+                        // Use a HashSet for 'visited' if optimization needed. 
+                        // For now transforming path to grid coords for check is slow.
+                        // Faster: Keep a HashSet<Vector3Int> visited locally in this method
+                        if (visited.Contains(next)) continue;
+
+
+                        
+                        // Weight Logic
+                        // Shorter distance = High weight
+                        // Equal distance = Low weight (side step)
+                        // Higher distance = Forbidden (to prevent backtracking/wandering to other spawns)
+                        
+                        float w = 0f;
+                        if (nextDist < currentDist)
+                        {
+                            w = 10f; // Prefer progress
+                        }
+                        else if (nextDist == currentDist) 
+                        {
+                             w = 2f; // Side steps allowed for variety
+                        }
+                        // else w = 0f (Forbidden)
+
+                        if (w > 0f)
+                        {
+                            candidates.Add(next);
+                            weights.Add(w);
+                            totalWeight += w;
+                        }
+                    }
+                }
+
+                if (candidates.Count > 0)
+                {
+                    // Weighted Random Selection
+                    float rnd = UnityEngine.Random.Range(0f, totalWeight);
+                    float sum = 0f;
+                    Vector3Int selected = candidates[0];
+                    
+                    for (int i = 0; i < candidates.Count; i++)
+                    {
+                        sum += weights[i];
+                        if (rnd <= sum)
+                        {
+                            selected = candidates[i];
+                            break;
+                        }
+                    }
+                    
+                    current = selected;
+                    path.Add(GridToWorld(current));
+                    visited.Add(current);
+                }
+                else
+                {
+                    // Dead end
+                    break;
+                }
+            }
+            
+            return path;
         }
 
         public List<Vector3> GetPathToBase(Vector3 startWorldPos)

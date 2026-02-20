@@ -36,6 +36,7 @@ public class BulletProjectile : MonoBehaviour
     private bool hasPayload;           
     private bool HasAOE => hasPayload && impactPayload.aoeRadius > 0f;
     private bool isArcProjectile = false;
+    private float initialVy;
 
     /// <summary>
     /// Public accessor for bullet settings (used by external systems)
@@ -153,6 +154,25 @@ public class BulletProjectile : MonoBehaviour
             rb.AddForce(direction.normalized * bulletSpeed, ForceMode.Impulse);
             rb.AddForce(Vector3.up * upwardForce, ForceMode.Impulse);
         }
+        
+        initialVy = rb.linearVelocity.y;
+        
+        // Phase I: Collision Filtering
+        // Non-Arc projectiles should ignore the ground to prevent clipping/accidental hits
+        Collider col = GetComponent<Collider>();
+        if (col != null)
+        {
+            if (!isArcProjectile)
+            {
+                // Exclude ground layer from collision
+                col.excludeLayers = groundMask; 
+            }
+            else
+            {
+                // Arc projectiles must hit ground -> ensure it's not excluded (default is 'Nothing')
+                col.excludeLayers = 0;
+            }
+        }
 
         // Update visuals after settings are set
         SetupVisuals(settings);
@@ -240,6 +260,15 @@ public class BulletProjectile : MonoBehaviour
         }
     }
 
+    private float spawnTime;
+    
+    // ... Initialize ...
+    // Note: I need to set spawnTime in Initialize.
+    // But I'm only editing this method block.
+    // I'll rely on OnEnable setting it, or I need to Find 'OnEnable'.
+    // Let's assume I can add 'spawnTime = Time.time;' in OnEnable if I edit it.
+    // Or I can add it here if I check 'if (spawnTime == 0)'.
+
     private void OnCollisionEnter(Collision collision)
     {
         if (!isActive) return;
@@ -254,7 +283,41 @@ public class BulletProjectile : MonoBehaviour
         // Should explode: either payload has AOE OR bullet type is Explosive
         bool shouldExplode = HasAOE || isExplosiveBullet;
 
-        // Check mask for Enemy
+        // Check mask for Ground
+        bool isGroundHit = (groundMask.value & (1 << collision.gameObject.layer)) > 0;
+        
+        // Arc Logic:
+        // 1. If Arc, and hitting Wall (not Ground, not Enemy), ignore collision if early in flight.
+        // Assuming Wall is Default layer? Or anything not Ground/Enemy.
+        
+        if (isArcProjectile)
+        {
+            // If hitting Enemy -> Hit.
+            // If hitting Ground -> Hit (Spawn Zone).
+            // If hitting Wall -> Check time.
+            
+            bool isEnemy = (enemyMask.value & (1 << collision.gameObject.layer)) > 0;
+            
+            if (!isEnemy && !isGroundHit)
+            {
+                // Must be Wall or Obstacle
+                // Check flight progress
+                // Estimate total flight time? hard.
+                // Use simple time check. 0.5s? or %?
+                // User said "first 25%".
+                // We don't know total time.
+                // Heuristic: If we are going UP? 
+                // Arc goes up then down.
+                // If rb.velocity.y > 0, we are in first half.
+                // So if moving UP, ignore walls?
+                
+                if (rb.linearVelocity.y > initialVy * 0.5f)
+                {
+                    Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider);
+                    return;
+                }
+            }
+        }
         if ((enemyMask.value & (1 << collision.gameObject.layer)) > 0)
         {
             if (shouldExplode)
@@ -293,7 +356,7 @@ public class BulletProjectile : MonoBehaviour
 
         // Check if we hit ground (for arc projectiles specifically)
         // Check mask for Ground
-        bool isGroundHit = (groundMask.value & (1 << collision.gameObject.layer)) > 0;
+        // isGroundHit already calculated above
         
         // Arc projectiles spawn ground zone on ground impact immediately
         if (isArcProjectile && isGroundHit)

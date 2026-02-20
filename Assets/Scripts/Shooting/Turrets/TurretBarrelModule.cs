@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections; // Needed for IEnumerator
 using System.Collections.Generic;
 
 public class TurretBarrelModule : MonoBehaviour
@@ -60,7 +61,7 @@ public class TurretBarrelModule : MonoBehaviour
 
     #region Projectile Fire Methods
 
-    public void FireBullet(Vector3 targetPos, TurretPropertiesSO weaponStats, int pelletsOverride = -1)
+    public void FireBullet(Vector3 targetPos, TurretPropertiesSO weaponStats, int pelletsOverride = -1, float damageOverride = -1f)
     {
         if (bulletPrefab == null) return;
 
@@ -78,17 +79,73 @@ public class TurretBarrelModule : MonoBehaviour
             evenAxisDistribution, deterministicPelletSpacing
         );
 
-        foreach (var dir in directions)
+        // Stagger Logic: If multi-pellet, stagger them over the burst interval
+        if (pelletCount > 1)
         {
-            var bulletObj = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(dir));
-            if (bulletObj != null)
-            {
-                bulletObj.SetShooter(this.gameObject);
-                bulletObj.Initialize(dir, weaponStats.bulletSpeed, weaponStats.upwardForce, weaponStats.damage, currentBulletSO);
-            }
+            StartCoroutine(FireStaggered(directions, weaponStats, damageOverride));
         }
+        else
+        {
+            // Instant Fire for single pellet
+            SpawnProjectile(directions[0], weaponStats, damageOverride);
+            PlayShootSound();
+        }
+    }
 
-        PlayShootSound();
+    private IEnumerator FireStaggered(List<Vector3> directions, TurretPropertiesSO weaponStats, float damageOverride = -1f)
+    {
+        // Calculate random delays for each pellet within the interval
+        // User requested "0 to burst interval amount".
+        float window = Mathf.Max(0.01f, weaponStats.burstInterval); 
+        
+        List<float> delays = new List<float>();
+        for (int i = 0; i < directions.Count; i++)
+        {
+            delays.Add(Random.Range(0f, window));
+        }
+        delays.Sort(); // Fire in chronological order
+
+        float currentTime = 0f;
+        int firedCount = 0;
+
+        // Play sound once at start? Or per shot? 
+        // For shotgun, usually one big BOOM.
+        // User said "un-even bullet being shot feel", implies sound too maybe?
+        // But usually sound is simultaneous. Let's play one sound at start.
+        PlayShootSound(); 
+
+        for (int i = 0; i < directions.Count; i++)
+        {
+            float targetTime = delays[i];
+            float rawWait = targetTime - currentTime;
+            
+            // Quantize to 0.01s to avoid flooding Helpers dictionary with random floats
+            float waitTime = (float)System.Math.Round(rawWait, 2);
+            
+            if (waitTime > 0f)
+            {
+                // Use the cached WaitForSeconds from Helpers
+                yield return Helpers.GetWaitForSecond(waitTime);
+            }
+            
+            currentTime = targetTime; // Advance simulated time to target (even if we rounded wait)
+            SpawnProjectile(directions[i], weaponStats, damageOverride);
+            firedCount++;
+        }
+    }
+
+    private void SpawnProjectile(Vector3 dir, TurretPropertiesSO weaponStats, float damageOverride = -1f)
+    {
+        var bulletObj = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(dir));
+        if (bulletObj != null)
+        {
+            bulletObj.SetShooter(this.gameObject);
+            
+            // Use Override if valid, else base stats
+            float dmg = (damageOverride > 0) ? damageOverride : weaponStats.damage;
+            
+            bulletObj.Initialize(dir, weaponStats.bulletSpeed, weaponStats.upwardForce, dmg, currentBulletSO);
+        }
     }
 
     public void FireAOE(Vector3 targetPos, TurretPropertiesSO s)
@@ -123,53 +180,48 @@ public class TurretBarrelModule : MonoBehaviour
         proj.SetShooter(gameObject);
 
         Vector3 origin = firePoint.position;
-        float xz = new Vector2(targetPos.x - origin.x, targetPos.z - origin.z).magnitude;
-
-        bool picked = false;
-        Vector3 v0 = Vector3.zero;
-
-        bool Accept(Vector3 cand)
+        // Vector3 direction = (targetPos - origin).normalized; // Not used for velocity calculation now due to override
+        
+        // Fixed Height Arc Logic (requested by User)
+        // Vy = upwardForce
+        // Solve T: 0.5*g*T^2 - Vy*T + dy = 0
+        
+        float Vy = s.upwardForce;
+        float gravity = Physics.gravity.magnitude;
+        float dy = targetPos.y - origin.y;
+        
+        float a = 0.5f * gravity;
+        float b = -Vy;
+        float c = dy;
+        
+        float det = b*b - 4f*a*c;
+        float T = 0f;
+        
+        if (det < 0)
         {
-            if (ShootHelpers.LaunchAngleDeg(cand) < minAngleDeg) return false;
-            float vh = new Vector2(cand.x, cand.z).magnitude;
-            float t = vh > 0f ? xz / vh : 0f;
-            return ShootHelpers.PathIsClear(origin, cand, Physics.gravity, 0.05f, t, 20, s.groundMask, out _);
+            // Can't reach height, use max possible time (apex) or just force flat shot?
+            // Fallback: Use standard heuristic
+            T = Vector3.Distance(origin, targetPos) / 20f;
         }
-
-        if (ShootHelpers.TrySolveBallisticArc(origin, targetPos, s.bulletSpeed, Physics.gravity.y, false, out var lowV) && Accept(lowV))
+        else
         {
-            v0 = lowV; picked = true;
+            // Use longer time (downward slope hit)
+            T = (-b + Mathf.Sqrt(det)) / (2f * a);
         }
-
-        if (!picked && ShootHelpers.TrySolveBallisticArc(origin, targetPos, s.bulletSpeed, Physics.gravity.y, true, out var highV) && Accept(highV))
-        {
-            v0 = highV; picked = true;
-        }
-
-        if (!picked)
-        {
-            float baseTime = Mathf.Lerp(0.6f, 1.6f, Mathf.InverseLerp(2f, 20f, xz));
-            var minAngleV = ShootHelpers.SolveBallisticByMinAngle(origin, targetPos, minAngleDeg, baseTime, Physics.gravity);
-            Vector3 cand = minAngleV;
-            bool ok = false;
-            float bumpT = 0f;
-            for (int i = 0; i < 3; i++)
-            {
-                cand = ShootHelpers.SolveBallisticByTime(origin, targetPos, baseTime + bumpT, Physics.gravity);
-                if (ShootHelpers.LaunchAngleDeg(cand) >= minAngleDeg && Accept(cand)) { ok = true; break; }
-                bumpT += 0.2f;
-            }
-            v0 = ok ? cand : minAngleV;
-            picked = true;
-        }
-
-        if (!picked)
-        {
-            Vector3 dir = (targetPos - origin).normalized;
-            proj.Initialize(dir, s.bulletSpeed, s.upwardForce, s.damage, currentBulletSO, null, true);
-            return;
-        }
-
+        
+        if (T <= 0.01f) T = 0.1f;
+        
+        // Horizontal Velocity
+        Vector3 d = targetPos - origin;
+        d.y = 0; // Horizontal vector
+        float dist = d.magnitude;
+        
+        float Vx = dist / T;
+        
+        Vector3 horizontalDir = d.normalized;
+        Vector3 v0 = horizontalDir * Vx + Vector3.up * Vy;
+        
+        // Use v0 override
         proj.Initialize(default, 0f, 0f, s.damage, currentBulletSO, null, true, v0);
     }
 
@@ -182,7 +234,7 @@ public class TurretBarrelModule : MonoBehaviour
     /// Called every frame by TurretBaseModule when in Beam mode.
     /// Trusts that Turret.cs has already validated the target is in range.
     /// </summary>
-    public void FireBeam(Enemy target, TurretPropertiesSO weaponStats, float deltaTime)
+    public void FireBeam(Enemy target, TurretPropertiesSO weaponStats, float deltaTime, float damageOverride = -1f)
     {
         if (target == null || !target.IsAlive || weaponStats == null) return;
 
@@ -191,7 +243,8 @@ public class TurretBarrelModule : MonoBehaviour
         Vector3 dir = (targetPos - origin).normalized;
 
         // Apply continuous DPS (damage per frame)
-        float dps = weaponStats.damage;
+        // Use Override if valid, else base stats
+        float dps = (damageOverride > 0) ? damageOverride : weaponStats.damage;
         float frameDamage = dps * deltaTime;
         
         // GDD: Buff and Utility never deal damage
