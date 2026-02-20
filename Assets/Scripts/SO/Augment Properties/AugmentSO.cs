@@ -13,22 +13,23 @@ public class AugmentSO : ScriptableObject
     public string description = "Augment description";
     public Sprite icon;
 
-    [Header("Augment Type")]
-    public AugmentType type;
+    [Header("Unique Mechanic Setup")]
     public AugmentRarity rarity = AugmentRarity.Common;
     
-    [Tooltip("Can this augment appear multiple times in a run? (e.g., stackable damage buffs)")]
+    [Tooltip("Can this augment appear multiple times in a run?")]
     public bool isRepeatable = false;
 
-    [Header("Effect Values")]
-    [Tooltip("Percentage increase (e.g., 20 = +20%)")]
-    public float percentageBonus = 0f;
-    
-    [Tooltip("Flat value increase (e.g., 5 = +5 damage)")]
-    public float flatBonus = 0f;
-
-    [Tooltip("For special augments with unique behavior")]
+    [Tooltip("For special augments with unique behavior (can be used by sub-classes if needed)")]
     public string specialEffect = "";
+
+    /// <summary>
+    /// Base method for handling when a turret with this augment hits an enemy.
+    /// Sub-classes can override this to apply burns, slows, chain lightning, etc.
+    /// </summary>
+    public virtual void OnHit(Enemy target, float damage) 
+    { 
+        // Default does nothing.
+    }
 }
 
 public enum AugmentType
@@ -44,6 +45,7 @@ public enum AugmentType
 public enum AugmentRarity
 {
     Common,
+    Uncommon,
     Rare,
     Epic,
     Legendary

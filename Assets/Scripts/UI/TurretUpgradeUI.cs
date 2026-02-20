@@ -90,9 +90,9 @@ public class TurretUpgradeUI : MonoBehaviour
         Instance = this;
         if (uiPanel != null) uiPanel.SetActive(false);
 
-        if (closeButton != null) closeButton.onClick.AddListener(Close);
+        if (closeButton != null) closeButton.onClick.AddListener(() => { SoundEvents.TriggerButtonClicked(this); Close(); });
         // Backdrop listener removed
-        if (sellButton != null) sellButton.onClick.AddListener(OnSellClicked);
+        if (sellButton != null) sellButton.onClick.AddListener(() => { SoundEvents.TriggerButtonClicked(this); OnSellClicked(); });
 
         // Ensure panels are active if assigned (Simultaneous Display)
         if (upgradePanel != null) upgradePanel.SetActive(true);
@@ -111,7 +111,7 @@ public class TurretUpgradeUI : MonoBehaviour
 
         if (targetingButton != null)
         {
-            targetingButton.onClick.AddListener(OnTargetingClicked);
+            targetingButton.onClick.AddListener(() => { SoundEvents.TriggerButtonClicked(this); OnTargetingClicked(); });
         }
     }
 
@@ -276,7 +276,7 @@ public class TurretUpgradeUI : MonoBehaviour
     {
         if (row != null && row.upgradeButton != null)
         {
-            row.upgradeButton.onClick.AddListener(() => OnUpgradeClicked(type));
+            row.upgradeButton.onClick.AddListener(() => { SoundEvents.TriggerButtonClicked(this); OnUpgradeClicked(type); });
         }
     }
 
@@ -460,15 +460,19 @@ public class TurretUpgradeUI : MonoBehaviour
         }
     }
 
+    [Space(10)]
+    [Header("Detailed Stats UI Colors")]
+    public Color percentBonusColor = new Color(1f, 0.65f, 0f); // Orange default
+    public Color flatBonusColor = Color.green;
+
     private string GetDetailedStat(float baseVal, AugmentType type)
     {
-        float mult = AugmentManager.GetStatMultiplier(type);
-        float flat = AugmentManager.GetStatFlatBonus(type);
+        float mult = UpgradesManager.GetStatMultiplier(type);
+        float flat = UpgradesManager.GetStatFlatBonus(type);
         
         float finalVal = (baseVal * mult) + flat;
         
         // Format: "Final (Base +% +Flat)"
-        // If no augments, just return "Final"
         
         if (Mathf.Approximately(mult, 1f) && Mathf.Approximately(flat, 0f))
         {
@@ -477,20 +481,19 @@ public class TurretUpgradeUI : MonoBehaviour
         
         string breakdown = "(";
         
-        // Only show base diff if we have augments
-        // Breakdown: "(Base +% +Flat)"
-        
         if (mult > 1.001f)
         {
             float pct = (mult - 1f) * 100f;
-            breakdown += $"<color=orange>+{pct:F0}%</color>";
+            string colorHex = "#" + ColorUtility.ToHtmlStringRGB(percentBonusColor);
+            breakdown += $"<color={colorHex}>+{pct:F0}%</color>";
         }
         
         if (flat > 0.001f)
         {
              // Add space if there is already a percent
             if (breakdown.Length > 1) breakdown += " ";
-            breakdown += $"<color=green>+{flat:F1}</color>";
+            string colorHex = "#" + ColorUtility.ToHtmlStringRGB(flatBonusColor);
+            breakdown += $"<color={colorHex}>+{flat:F1}</color>";
         }
         
         breakdown += ")";
@@ -498,3 +501,4 @@ public class TurretUpgradeUI : MonoBehaviour
         return $"{finalVal:F1} {breakdown}";
     }
 }
+

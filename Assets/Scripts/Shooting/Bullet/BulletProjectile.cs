@@ -25,6 +25,8 @@ public class BulletProjectile : MonoBehaviour
     [Header("Layer Masks")]
     [SerializeField] private LayerMask enemyMask;
     [SerializeField] private LayerMask groundMask;
+    [Tooltip("Layers the bullet will ALWAYS pass through (e.g. Turret, Bullet, UI)")]
+    [SerializeField] private LayerMask excludeLayersMask;
 
     private int bounceRemaining;
     [SerializeField] private bool isActive; // Serialized for debugging, private set
@@ -47,6 +49,7 @@ public class BulletProjectile : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         isActive = true;
+        spawnTime = Time.time;
         
         // Use runtime settings or fall back to default
         var activeSettings = settings ?? defaultSettings;
@@ -164,13 +167,13 @@ public class BulletProjectile : MonoBehaviour
         {
             if (!isArcProjectile)
             {
-                // Exclude ground layer from collision
-                col.excludeLayers = groundMask; 
+                // Exclude ground layer + the global ignores set in inspector
+                col.excludeLayers = groundMask | excludeLayersMask; 
             }
             else
             {
-                // Arc projectiles must hit ground -> ensure it's not excluded (default is 'Nothing')
-                col.excludeLayers = 0;
+                // Arc projectiles must hit ground -> ensure only global ignores are excluded
+                col.excludeLayers = excludeLayersMask;
             }
         }
 
@@ -262,13 +265,6 @@ public class BulletProjectile : MonoBehaviour
 
     private float spawnTime;
     
-    // ... Initialize ...
-    // Note: I need to set spawnTime in Initialize.
-    // But I'm only editing this method block.
-    // I'll rely on OnEnable setting it, or I need to Find 'OnEnable'.
-    // Let's assume I can add 'spawnTime = Time.time;' in OnEnable if I edit it.
-    // Or I can add it here if I check 'if (spawnTime == 0)'.
-
     private void OnCollisionEnter(Collision collision)
     {
         if (!isActive) return;
@@ -287,6 +283,19 @@ public class BulletProjectile : MonoBehaviour
         bool isGroundHit = (groundMask.value & (1 << collision.gameObject.layer)) > 0;
         
         // Arc Logic:
+        // Ignore ground collision while moving UP or just started.
+        // If a bullet rolls, its Y velocity is ~0. Since we check `> -0.1f` AND `< 0.5s`,
+        // a rolling bullet will only ignore the ground for 0.5s before colliding.
+        if (isArcProjectile && isGroundHit)
+        {
+             // If we are still traveling upwards (or flat) AND it just spawned, ignore ground
+             if (rb.linearVelocity.y > -0.1f && Time.time - spawnTime < 0.5f)
+             {
+                 Physics.IgnoreCollision(GetComponent<Collider>(), collision.collider);
+                 return;
+             }
+        }
+        
         // 1. If Arc, and hitting Wall (not Ground, not Enemy), ignore collision if early in flight.
         // Assuming Wall is Default layer? Or anything not Ground/Enemy.
         
@@ -336,6 +345,7 @@ public class BulletProjectile : MonoBehaviour
             else
             {
                 // Non-explosive: apply direct damage
+                SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, true); // Hit Enemy
                 if (collision.gameObject.TryGetComponent(out Enemy enemy))
                 {
                     Vector3 attackDir = rb.linearVelocity.normalized;
@@ -361,6 +371,7 @@ public class BulletProjectile : MonoBehaviour
         // Arc projectiles spawn ground zone on ground impact immediately
         if (isArcProjectile && isGroundHit)
         {
+            SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, false); // Hit Ground
             SpawnGroundZone(hitPoint);
             return;
         }
@@ -389,6 +400,7 @@ public class BulletProjectile : MonoBehaviour
             }
             else
             {
+                SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, false); // Generic hit wall/object
                 Deactivate();
             }
         }
@@ -429,6 +441,8 @@ public class BulletProjectile : MonoBehaviour
     {
         var activeSettings = settings ?? defaultSettings;
         
+        SoundEvents.TriggerAOEExplosion(this);
+
         // Use BulletPropertiesSO explosive radius if bullet type is Explosive
         // Otherwise fall back to impactPayload (from TurretPropertiesSO)
         float radius;
@@ -517,6 +531,8 @@ public class BulletProjectile : MonoBehaviour
     /// </summary>
     private void DoArcExplosion(Vector3 hitPoint, BulletPropertiesSO bulletSO)
     {
+        SoundEvents.TriggerAOEExplosion(this);
+        
         float radius = bulletSO.explosiveRadius;
         if (radius <= 0f) radius = bulletSO.arcZoneRadius; // Fallback to arc zone radius
         

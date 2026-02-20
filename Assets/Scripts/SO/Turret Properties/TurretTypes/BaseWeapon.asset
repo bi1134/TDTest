@@ -19,7 +19,7 @@ MonoBehaviour:
   enemyMask:
     serializedVersion: 2
     m_Bits: 128
-  damage: 1
+  damage: 10
   fireRate: 0.5
   bulletsPerTap: 1
   bulletSpeed: 20

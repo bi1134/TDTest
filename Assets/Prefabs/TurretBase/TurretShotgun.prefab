@@ -579,5 +579,8 @@ MonoBehaviour:
   range: 3.5
   rotationSpeed: 20
   enemyTag: Enemy
+  obstacleExcludeMask:
+    serializedVersion: 2
+    m_Bits: 1632
   accuracyError: 0
-  targetingMode: 2
+  targetingMode: 0

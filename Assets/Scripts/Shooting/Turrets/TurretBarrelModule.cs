@@ -6,8 +6,6 @@ public class TurretBarrelModule : MonoBehaviour
 {
     [SerializeField] private Transform firePoint;
     [SerializeField] private ParticleSystem muzzleFlash;
-    [SerializeField] private AudioClip fireClip;
-    [SerializeField] private AudioSource audioSource;
 
     [Header("Bullet Configuration (Authoritative)")]
     [Tooltip("The bullet prefab to use for projectile-based fire modes")]
@@ -88,7 +86,6 @@ public class TurretBarrelModule : MonoBehaviour
         {
             // Instant Fire for single pellet
             SpawnProjectile(directions[0], weaponStats, damageOverride);
-            PlayShootSound();
         }
     }
 
@@ -107,12 +104,6 @@ public class TurretBarrelModule : MonoBehaviour
 
         float currentTime = 0f;
         int firedCount = 0;
-
-        // Play sound once at start? Or per shot? 
-        // For shotgun, usually one big BOOM.
-        // User said "un-even bullet being shot feel", implies sound too maybe?
-        // But usually sound is simultaneous. Let's play one sound at start.
-        PlayShootSound(); 
 
         for (int i = 0; i < directions.Count; i++)
         {
@@ -168,8 +159,6 @@ public class TurretBarrelModule : MonoBehaviour
         var proj = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(dir));
         proj.SetShooter(gameObject);
         proj.Initialize(dir, s.bulletSpeed, s.upwardForce, s.damage, currentBulletSO, payload);
-
-        PlayShootSound();
     }
 
     public void FireArc(Vector3 targetPos, TurretPropertiesSO s, float minAngleDeg = 25f)
@@ -301,8 +290,6 @@ public class TurretBarrelModule : MonoBehaviour
             Color beamColor = GetBeamColor();
             Debug.DrawRay(origin, dir * 100f, beamColor, 0.1f);
         }
-        
-        PlayShootSound();
     }
 
     /// <summary>
@@ -386,13 +373,4 @@ public class TurretBarrelModule : MonoBehaviour
     }
 
     #endregion
-
-    private void PlayShootSound()
-    {
-        if (audioSource != null && fireClip != null)
-        {
-            audioSource.pitch = Random.Range(0.95f, 1.05f);
-            audioSource.PlayOneShot(fireClip);
-        }
-    }
 }

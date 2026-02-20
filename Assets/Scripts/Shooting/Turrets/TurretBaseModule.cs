@@ -101,8 +101,8 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                 {
                     // Elemental: continuous damage per frame
                     // Calculate Augmented Damage
-                    float dmgMult = AugmentManager.GetStatMultiplier(AugmentType.Damage); 
-                    float dmgFlat = AugmentManager.GetStatFlatBonus(AugmentType.Damage);
+                    float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage); 
+                    float dmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
                     float finalDamage = (weaponStats.damage * dmgMult) + dmgFlat;
                     
                     // FireBeam logic inside checks "weaponStats.damage". 
@@ -126,11 +126,12 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                         beamShotTimer = weaponStats.beamShotInterval;
                         
                         // Calculate Augmented Damage for Sniper Shot too
-                        float dmgMult = AugmentManager.GetStatMultiplier(AugmentType.Damage); 
-                        float dmgFlat = AugmentManager.GetStatFlatBonus(AugmentType.Damage);
+                        float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage); 
+                        float dmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
                         float finalDamage = (weaponStats.damage * dmgMult) + dmgFlat;
 
                         // Fire a single bullet (sniper shot) with override
+                        SoundEvents.TriggerTurretShoot(this, weaponStats.weaponName, weaponStats.fireMode);
                         barrel.FireBullet(target.position, weaponStats, 1, finalDamage);
                     }
                 }
@@ -142,7 +143,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                 isBeamFiring = false;
                 
                 // Apply fire rate augment
-                float fireRateMultiplier = AugmentManager.GetStatMultiplier(AugmentType.FireRate);
+                float fireRateMultiplier = UpgradesManager.GetStatMultiplier(AugmentType.FireRate);
                 float modifiedFireRate = weaponStats.fireRate * fireRateMultiplier;
                 fireCooldown = 1f / modifiedFireRate;
             }
@@ -187,7 +188,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         if (fireCooldown <= 0f)
         {
             // Apply fire rate augment
-            float fireRateMultiplier = AugmentManager.GetStatMultiplier(AugmentType.FireRate);
+            float fireRateMultiplier = UpgradesManager.GetStatMultiplier(AugmentType.FireRate);
             float modifiedFireRate = weaponStats.fireRate * fireRateMultiplier;
             fireCooldown = 1f / modifiedFireRate;
             Fire();
@@ -259,10 +260,12 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     {
         if (target == null) return;
 
+        SoundEvents.TriggerTurretShoot(this, weaponStats.weaponName, weaponStats.fireMode);
+
         // Calculate Final Damage with Augments
-        float dmgMult = AugmentManager.GetStatMultiplier(AugmentType.Damage); 
+        float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage); 
         
-        float dmgFlat = AugmentManager.GetStatFlatBonus(AugmentType.Damage);
+        float dmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
         float finalDamage = (weaponStats.damage * dmgMult) + dmgFlat;
 
         switch (weaponStats.fireMode)
@@ -505,6 +508,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
             barrel.SetBulletType(projectile, properties);
             parentNode.SetBarrelActive(true);
+            SoundEvents.TriggerTurretBuilt(this);
             Debug.Log($"Installed bullet: {properties?.bulletType ?? BulletType.Normal}");
         }
         else
@@ -520,3 +524,4 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     #endregion
 }
+

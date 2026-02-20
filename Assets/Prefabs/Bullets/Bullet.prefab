@@ -55,6 +55,9 @@ MonoBehaviour:
   groundMask:
     serializedVersion: 2
     m_Bits: 256
+  excludeLayersMask:
+    serializedVersion: 2
+    m_Bits: 1600
   isActive: 1
 --- !u!135 &6403962706135204397
 SphereCollider:

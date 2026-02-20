@@ -235,6 +235,9 @@ MonoBehaviour:
   hoverColor: {r: 0.3886792, g: 0.38647914, b: 0.38647914, a: 0}
   targetRenderer: {fileID: 0}
   turretName: 
+  description: 
+  currentLevel: 1
+  maxLevel: 100
   totalInvestment: 0
 --- !u!65 &2704609498545071977
 BoxCollider:
@@ -576,4 +579,8 @@ MonoBehaviour:
   range: 5
   rotationSpeed: 10
   enemyTag: Enemy
+  obstacleExcludeMask:
+    serializedVersion: 2
+    m_Bits: 1889
   accuracyError: 0
+  targetingMode: 2

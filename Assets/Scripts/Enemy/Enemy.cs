@@ -23,6 +23,10 @@ public class Enemy : MonoBehaviour
     [Header("Reward")]
     [SerializeField] private int moneyReward = 10;
 
+    [Header("Drops")]
+    public GameObject statShardPrefab;
+    [Range(0f, 1f)] public float statShardDropChance = 0.05f; // 5% chance
+
     [Header("Runtime State")]
     [SerializeField] private float currentHealth;
     [SerializeField] private float currentShieldHP;
@@ -167,7 +171,14 @@ public class Enemy : MonoBehaviour
     protected virtual void Die()
     {
         Debug.Log($"{gameObject.name} has died!");
+        SoundEvents.TriggerEnemyDeath(this);
         
+        // Roll for Stat Shard Drop
+        if (statShardPrefab != null && UnityEngine.Random.value <= statShardDropChance)
+        {
+            Instantiate(statShardPrefab, transform.position, Quaternion.identity);
+        }
+
         // Assuming PlayerStats and WaveManager are accessible
         // You might need to add 'using static YourNamespace.PlayerStats;' or similar
         // if PlayerStats is a static class not in the global namespace.
@@ -239,6 +250,7 @@ public class Enemy : MonoBehaviour
         // Shield HP absorbs damage first (GDD rule) unless bypassed
         if (currentShieldHP > 0 && !bypassShield)
         {
+            SoundEvents.TriggerEnemyHit(this, true); // Shield Hit
             if (remainingDamage >= currentShieldHP)
             {
                 remainingDamage -= currentShieldHP;
@@ -249,6 +261,10 @@ public class Enemy : MonoBehaviour
                 currentShieldHP -= remainingDamage;
                 remainingDamage = 0;
             }
+        }
+        else
+        {
+            SoundEvents.TriggerEnemyHit(this, false); // Flesh Hit
         }
 
         // Apply vulnerability multiplier to normal health damage only

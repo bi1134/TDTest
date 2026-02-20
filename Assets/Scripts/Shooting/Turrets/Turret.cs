@@ -11,6 +11,8 @@ public class Turret : MonoBehaviour
     public float range = 15f;
     public float rotationSpeed = 10f;
     public string enemyTag = "Enemy";
+    [Tooltip("Layers the turret will ignore when checking Line of Sight (e.g. Turret, Bullet, UI)")]
+    public LayerMask obstacleExcludeMask;
 
     private Transform target;
 
@@ -101,7 +103,7 @@ public class Turret : MonoBehaviour
                     // Center 3 (Indices 3,4,5) = Lock In (Fire)
                     // Outer 3 (0,1,2 & 6,7,8) = Aware (Track only)
                     
-                    int mask = ~LayerMask.GetMask("Bullet", "Ignore Raycast", "UI");
+                    int mask = ~obstacleExcludeMask;
                     int clearCenterCount = 0;
                     int clearOuterCount = 0;
                     
@@ -285,7 +287,8 @@ public class Turret : MonoBehaviour
             // --- LOS Check (Condensed) ---
             Vector3 start = myPos + Vector3.up * 1f; 
             Vector3 end = enemyGO.transform.position + Vector3.up * 1f;
-            if (Physics.Linecast(start, end, out RaycastHit hit))
+            int mask = ~obstacleExcludeMask;
+            if (Physics.Linecast(start, end, out RaycastHit hit, mask))
             {
                  if (hit.collider.gameObject != enemyGO && !hit.collider.CompareTag(enemyTag))
                  {
@@ -384,7 +387,7 @@ public class Turret : MonoBehaviour
 
     public float GetEffectiveRange()
     {
-        float mult = AugmentManager.GetStatMultiplier(AugmentType.Range);
+        float mult = UpgradesManager.GetStatMultiplier(AugmentType.Range);
         return range * mult;
     }
 
@@ -396,3 +399,4 @@ public class Turret : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, r);
     }
 }
+

@@ -17,7 +17,7 @@ public class GameStateResetter : MonoBehaviour
 
     /// <summary>
     /// Reset all static data across the game.
-    /// Add new reset calls here as you add systems with static data (e.g., AugmentManager).
+    /// Add new reset calls here as you add systems with static data (e.g., UpgradesManager).
     /// </summary>
     private void ResetAllStaticData()
     {
@@ -30,11 +30,11 @@ public class GameStateResetter : MonoBehaviour
         PlayerStats.ResetStaticData();
 
         // Augment system
-        AugmentManager.ResetStaticData();
+        UpgradesManager.ResetStaticData();
 
         // Future: Add more reset calls as needed
         // Example:
-        // AugmentManager.ResetStaticData();
+        // UpgradesManager.ResetStaticData();
         // UpgradeManager.ResetStaticData();
         // MetaProgressionManager.ResetStaticData(); // If using persistent upgrades
 
@@ -54,3 +54,4 @@ public class GameStateResetter : MonoBehaviour
         ResetAllStaticData();
     }
 }
+

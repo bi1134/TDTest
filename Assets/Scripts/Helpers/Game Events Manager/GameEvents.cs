@@ -32,6 +32,16 @@ public static class GameEvents
         public AugmentSO selectedAugment;
     }
 
+    public class StatShardSelectionStartedEventArgs : EventArgs
+    {
+        public System.Collections.Generic.List<UpgradesManager.ActiveStatShard> options;
+    }
+
+    public class StatShardSelectedEventArgs : EventArgs
+    {
+        public UpgradesManager.ActiveStatShard selectedShard;
+    }
+
     // Map & Path
     public static event EventHandler OnMapExpansionStarted;
     public static event EventHandler OnPathfinderGraphRebuilt;
@@ -102,6 +112,19 @@ public static class GameEvents
        OnAugmentSelected?.Invoke(sender, new AugmentSelectedEventArgs { selectedAugment = selectedAugment });
     }
 
+    // Stat Shard Events
+    public static event EventHandler<StatShardSelectionStartedEventArgs> OnStatShardSelectionStarted;
+    public static void TriggerStatShardSelectionStarted(object sender, System.Collections.Generic.List<UpgradesManager.ActiveStatShard> options)
+    {
+        OnStatShardSelectionStarted?.Invoke(sender, new StatShardSelectionStartedEventArgs { options = options });
+    }
+
+    public static event EventHandler<StatShardSelectedEventArgs> OnStatShardSelected;
+    public static void TriggerStatShardSelected(object sender, UpgradesManager.ActiveStatShard selectedShard)
+    {
+       OnStatShardSelected?.Invoke(sender, new StatShardSelectedEventArgs { selectedShard = selectedShard });
+    }
+
     // Seed Event
     public static event EventHandler<int> OnRunSeedSet;
     public static void TriggerRunSeedSet(object sender, int seed)
@@ -123,3 +146,4 @@ public static class GameEvents
         OnWaveStartFailed?.Invoke(sender, EventArgs.Empty);
     }
 }
+

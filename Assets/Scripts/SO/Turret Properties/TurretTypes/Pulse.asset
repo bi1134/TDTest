@@ -15,7 +15,7 @@ MonoBehaviour:
   weaponName: 0
   groundMask:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 257
   enemyMask:
     serializedVersion: 2
     m_Bits: 128

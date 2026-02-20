@@ -6,6 +6,7 @@ public class PlayerStatsUI : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI moneyText;
     [SerializeField] private TextMeshProUGUI livesText; 
+    [SerializeField] private TextMeshProUGUI waveText;
 
     private void OnEnable()
     {
@@ -13,6 +14,38 @@ public class PlayerStatsUI : MonoBehaviour
 
         GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
         GameUIEvent.LivesChanged(this, PlayerStats.Lives);
+        
+        GameEvents.OnWaveCompleted += UpdateWaveText;
+        // Optionally update it as soon as the manager starts
+    }
+
+    private void Start()
+    {
+        // Force an initial update to show "Wave: 0" or whatever the current wave is
+        UpdateWaveDisplay();
+        
+        GameEvents.OnWaveStarted += HandleWaveStarted;
+    }
+
+    private void HandleWaveStarted(object sender, EventArgs e)
+    {
+        UpdateWaveDisplay();
+    }
+
+    private void UpdateWaveDisplay()
+    {
+        if (waveText != null)
+        {
+            var wm = FindAnyObjectByType<WaveManager>();
+            if (wm != null)
+            {
+                waveText.text = "Wave: " + wm.activeWaveCount;
+            }
+            else
+            {
+                waveText.text = "Wave: 0";
+            }
+        }
     }
     
     private void UpdateMoney(object sender, GameUIEvent.OnMoneyChangedEventArgs e)
@@ -25,6 +58,12 @@ public class PlayerStatsUI : MonoBehaviour
                livesText.text = "Lives: " + e.currentLives;
     }
 
+    private void UpdateWaveText(object sender, GameEvents.WaveCompletedEventArgs e)
+    {
+        // We can just call the shared method to ensure it's synced
+        UpdateWaveDisplay();
+    }
+
     [Header("Pause Control")]
     [SerializeField] private UnityEngine.UI.Button pauseButton;
     [SerializeField] private PauseManager pauseManager;
@@ -35,6 +74,7 @@ public class PlayerStatsUI : MonoBehaviour
         {
             pauseButton.onClick.AddListener(() =>
             {
+                SoundEvents.TriggerButtonClicked(this);
                 if (pauseManager != null)
                 {
                     pauseManager.Pause();
@@ -55,4 +95,11 @@ public class PlayerStatsUI : MonoBehaviour
         GameUIEvent.OnLivesChanged += UpdateLives;
     }
 
+    private void OnDisable()
+    {
+        GameUIEvent.OnMoneyChanged -= UpdateMoney;
+        GameUIEvent.OnLivesChanged -= UpdateLives;
+        GameEvents.OnWaveCompleted -= UpdateWaveText;
+        GameEvents.OnWaveStarted -= HandleWaveStarted;
+    }
 }

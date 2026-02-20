@@ -90,6 +90,7 @@ public class AugmentCard : MonoBehaviour
     {
         if (currentAugment != null && onCardSelected != null)
         {
+            SoundEvents.TriggerCardClicked(this);
             Debug.Log($"[AugmentCard] Card clicked: {currentAugment.augmentName}");
             onCardSelected.Invoke(currentAugment);
         }
@@ -97,6 +98,7 @@ public class AugmentCard : MonoBehaviour
 
     private void OnRerollClicked()
     {
+        SoundEvents.TriggerButtonClicked(this);
         if (onCardRerolled != null)
         {
             Debug.Log($"[AugmentCard] Reroll clicked for: {currentAugment.augmentName}");

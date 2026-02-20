@@ -48,8 +48,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   maxHealth: 20
   baseSpeed: 2
+  damageToPlayer: 1
   maxShieldHP: 0
   moneyReward: 15
+  statShardPrefab: {fileID: 6782390953603596957, guid: 0c262dc95d247974cbad83af217b86a1, type: 3}
+  statShardDropChance: 1
   currentHealth: 0
   currentShieldHP: 0
   currentSpeed: 0

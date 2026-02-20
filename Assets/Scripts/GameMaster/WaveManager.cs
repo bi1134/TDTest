@@ -17,6 +17,7 @@ public class WaveManager : MonoBehaviour
     public List<WaveConfig> waves = new List<WaveConfig>();
 
     public int currentWaveIndex = 0;
+    public int activeWaveCount = 0; // The continuous display wave count
     public bool isWaveActive = false;
     public int enemiesAlive = 0;
     
@@ -145,6 +146,7 @@ public class WaveManager : MonoBehaviour
     private IEnumerator SpawnWave(WaveConfig wave)
     {
         isWaveActive = true;
+        activeWaveCount++;
         
         // Calculate Total Enemies
         enemiesAlive = 0;
@@ -237,16 +239,20 @@ public class WaveManager : MonoBehaviour
         enemiesAlive--;
         if (enemiesAlive <= 0)
         {
-            EndWave();
+            StartCoroutine(EndWaveRoutine());
         }
     }
 
-    private void EndWave()
+    private IEnumerator EndWaveRoutine()
     {
         isWaveActive = false;
+        
+        // Wait a frame or two to ensure any on-death spawns (orbs) are instantiated!
+        yield return new WaitForSeconds(0.25f);
+        
         Debug.Log("Wave Complete!");
         
         // Pass wave number (1-indexed for display)
-        GameEvents.TriggerWaveCompleted(this, currentWaveIndex + 1);
+        GameEvents.TriggerWaveCompleted(this, activeWaveCount); 
     }
 }

@@ -8,13 +8,16 @@ using TerrainGenerator;
 /// Tracks augments selected during the current run.
 /// Supports deterministic generation via WFCWorldManager seed.
 /// </summary>
-public class AugmentManager : MonoBehaviour
+public class UpgradesManager : MonoBehaviour
 {
-    public static AugmentManager Instance { get; private set; }
+    public static UpgradesManager Instance { get; private set; }
 
-    [Header("Augment Pool")]
+    [Header("Pools")]
     [Tooltip("All available augments that can appear")]
     public List<AugmentSO> augmentPool = new List<AugmentSO>();
+    
+    [Tooltip("All available stat shards that can appear")]
+    public List<StatShardSO> statShardPool = new List<StatShardSO>();
 
     [Header("Wave Trigger")]
     [Tooltip("Wave number to show augments (e.g., 7, 14, 21)")]
@@ -28,9 +31,18 @@ public class AugmentManager : MonoBehaviour
 
     // Static data - resets on new game
     private static List<AugmentSO> activeAugments = new List<AugmentSO>();
+    private static List<ActiveStatShard> activeStatShards = new List<ActiveStatShard>();
     
     // Deterministic RNG
     private System.Random rng;
+
+    [System.Serializable]
+    public class ActiveStatShard
+    {
+        public StatShardSO shardDef;
+        public AugmentRarity rarity;
+        public float rolledValue;
+    }
 
     private void Awake()
     {
@@ -71,11 +83,11 @@ public class AugmentManager : MonoBehaviour
             // Use world seed + constant to ensure it's deterministic but different stream
             // Or just use world seed.
             seed = worldManager.runSeed + 12345; 
-            Debug.Log($"[AugmentManager] Initialized with World Seed: {worldManager.runSeed}");
+            Debug.Log($"[UpgradesManager] Initialized with World Seed: {worldManager.runSeed}");
         }
         else
         {
-             Debug.Log($"[AugmentManager] Initialized with Random Seed: {seed}");
+             Debug.Log($"[UpgradesManager] Initialized with Random Seed: {seed}");
         }
         
         rng = new System.Random(seed);
@@ -93,7 +105,7 @@ public class AugmentManager : MonoBehaviour
         {
             if (logAugments)
             {
-                Debug.Log($"[AugmentManager] Wave {e.waveNumber} complete - triggering augment selection");
+                Debug.Log($"[UpgradesManager] Wave {e.waveNumber} complete - triggering augment selection");
             }
 
             ShowAugmentSelection();
@@ -105,8 +117,16 @@ public class AugmentManager : MonoBehaviour
         // Get 3 random augments
         List<AugmentSO> options = GetRandomAugments(3);
 
-        // Trigger event for UI to show cards
-        GameEvents.TriggerAugmentSelectionStarted(this, options);
+        // Queue the logic instead of overriding current UI 
+        if (SelectionQueueManager.Instance != null)
+        {
+            SelectionQueueManager.Instance.EnqueueAugmentSelection(options);
+        }
+        else
+        {
+            Debug.LogWarning("[UpgradesManager] SelectionQueueManager missing! Triggering Event directly.");
+            GameEvents.TriggerAugmentSelectionStarted(this, options);
+        }
     }
 
     /// <summary>
@@ -119,7 +139,7 @@ public class AugmentManager : MonoBehaviour
         
         if (augmentPool.Count == 0)
         {
-            Debug.LogWarning("[AugmentManager] Augment pool is empty!");
+            Debug.LogWarning("[UpgradesManager] Augment pool is empty!");
             return result;
         }
 
@@ -167,7 +187,7 @@ public class AugmentManager : MonoBehaviour
 
         if (tempPool.Count == 0)
         {
-            Debug.LogWarning("[AugmentManager] No valid augments left after exclusion! returning random from full pool.");
+            Debug.LogWarning("[UpgradesManager] No valid augments left after exclusion! returning random from full pool.");
             // Fallback: pick from full pool
             tempPool = new List<AugmentSO>(augmentPool);
         }
@@ -183,7 +203,7 @@ public class AugmentManager : MonoBehaviour
     {
         if (augment == null)
         {
-            Debug.LogWarning("[AugmentManager] Tried to apply null augment!");
+            Debug.LogWarning("[UpgradesManager] Tried to apply null augment!");
             return;
         }
 
@@ -191,11 +211,25 @@ public class AugmentManager : MonoBehaviour
 
         if (logAugments)
         {
-            Debug.Log($"[AugmentManager] Applied augment: {augment.augmentName} (Total active: {activeAugments.Count})");
+            Debug.Log($"[UpgradesManager] Applied augment: {augment.augmentName} (Total active: {activeAugments.Count})");
         }
 
         // Trigger event so systems can react
         GameEvents.TriggerAugmentSelected(this, augment);
+    }
+
+    /// <summary>
+    /// Apply selected stat shard. Called by UI.
+    /// </summary>
+    public void ApplyStatShard(ActiveStatShard shard)
+    {
+        if (shard == null) return;
+
+        activeStatShards.Add(shard);
+        if (logAugments) Debug.Log($"[UpgradesManager] Applied Stat Shard: {shard.shardDef.shardName} (+{shard.rolledValue})");
+
+        // Trigger event
+        GameEvents.TriggerStatShardSelected(this, shard);
     }
 
     /// <summary>
@@ -206,11 +240,11 @@ public class AugmentManager : MonoBehaviour
     {
         float multiplier = 1f;
 
-        foreach (var augment in activeAugments)
+        foreach (var shard in activeStatShards)
         {
-            if (augment.type == type)
+            if (shard.shardDef.statType == type && shard.shardDef.isPercentage)
             {
-                multiplier += augment.percentageBonus / 100f;
+                multiplier += shard.rolledValue / 100f;
             }
         }
 
@@ -224,26 +258,91 @@ public class AugmentManager : MonoBehaviour
     {
         float bonus = 0f;
 
-        foreach (var augment in activeAugments)
+        foreach (var shard in activeStatShards)
         {
-            if (augment.type == type)
+            if (shard.shardDef.statType == type && !shard.shardDef.isPercentage)
             {
-                bonus += augment.flatBonus;
+                bonus += shard.rolledValue;
             }
         }
 
         return bonus;
     }
 
+    private AugmentRarity GetRandomRarity()
+    {
+        float roll = (float)rng.NextDouble() * 100f;
+        if (roll <= 1f) return AugmentRarity.Legendary; // 1%
+        if (roll <= 5f) return AugmentRarity.Epic;      // 4%
+        if (roll <= 20f) return AugmentRarity.Rare;     // 15%
+        if (roll <= 50f) return AugmentRarity.Uncommon; // 30%
+        return AugmentRarity.Common;                    // 50%
+    }
+
+    /// <summary>
+    /// Generates a randomized Stat Shard instance based on its rarity bracket using the seeded RNG.
+    /// </summary>
+    public ActiveStatShard GenerateRandomShard(StatShardSO so)
+    {
+        AugmentRarity rolledRarity = GetRandomRarity();
+        var bounds = so.GetBounds(rolledRarity);
+        
+        // Use System.Random to get a double between 0.0 and 1.0
+        float roll = (float)rng.NextDouble();
+        
+        // Lerp between min and max
+        float rawValue = Mathf.Lerp(bounds.min, bounds.max, roll);
+        
+        // Round to whole number
+        float finalValue = Mathf.Round(rawValue);
+
+        return new ActiveStatShard
+        {
+            shardDef = so,
+            rarity = rolledRarity,
+            rolledValue = finalValue
+        };
+    }
+
+    /// <summary>
+    /// Generates multiple choices for a single Stat Shard drop.
+    /// </summary>
+    public List<ActiveStatShard> GetRandomStatShardChoices(int count)
+    {
+        List<ActiveStatShard> result = new List<ActiveStatShard>();
+        if (statShardPool.Count == 0) return result;
+
+        List<StatShardSO> tempPool = new List<StatShardSO>(statShardPool);
+        
+        for (int i = 0; i < count; i++)
+        {
+            if (tempPool.Count == 0)
+            {
+                // If we run out of unique stats, refill the pool to allow repeats of the same stat
+                tempPool = new List<StatShardSO>(statShardPool);
+            }
+
+            int randomIndex = rng.Next(0, tempPool.Count);
+            StatShardSO selectedSO = tempPool[randomIndex];
+            
+            result.Add(GenerateRandomShard(selectedSO));
+            tempPool.RemoveAt(randomIndex); // Prevent showing the same stat multiple times in one panel if possible
+        }
+
+        return result;
+    }
+
     /// <summary>
     /// Check if player has any active augments.
     /// </summary>
-    public static bool HasAugments() => activeAugments.Count > 0;
+    public static bool HasAugments() => activeAugments.Count > 0 || activeStatShards.Count > 0;
 
     /// <summary>
     /// Get all active augments (for UI display, debugging).
     /// </summary>
     public static List<AugmentSO> GetActiveAugments() => new List<AugmentSO>(activeAugments);
+
+    public static List<ActiveStatShard> GetActiveStatShards() => new List<ActiveStatShard>(activeStatShards);
 
     /// <summary>
     /// Reset all static data - called by GameStateResetter on new game.
@@ -251,6 +350,8 @@ public class AugmentManager : MonoBehaviour
     public static void ResetStaticData()
     {
         activeAugments.Clear();
-        Debug.Log("[AugmentManager] Static data reset - all augments cleared");
+        activeStatShards.Clear();
+        Debug.Log("[UpgradesManager] Static data reset - all augments and shards cleared");
     }
 }
+

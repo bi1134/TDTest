@@ -19,8 +19,8 @@ public static class BulletEffectApplicator
         if (enemy == null || bullet == null) return;
         
         // Apply augment modifiers to damage
-        float augmentMultiplier = AugmentManager.GetStatMultiplier(AugmentType.Damage);
-        float augmentFlatBonus = AugmentManager.GetStatFlatBonus(AugmentType.Damage);
+        float augmentMultiplier = UpgradesManager.GetStatMultiplier(AugmentType.Damage);
+        float augmentFlatBonus = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
         float modifiedDamage = (baseDamage * augmentMultiplier) + augmentFlatBonus;
         
         // Apply barrier reduction if applicable
@@ -229,3 +229,4 @@ public static class BulletEffectApplicator
         return nearest;
     }
 }
+
