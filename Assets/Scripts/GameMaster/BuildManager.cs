@@ -60,7 +60,17 @@ public class BuildManager : MonoBehaviour
         }
 
         PlayerStats.wallet -= SelectedTurret.cost;
-        var go = Instantiate(SelectedTurret.prefab, node.GetBuildPosition(), Quaternion.identity, node.positionOffset.transform);
+
+        GameObject go;
+        if (TurretPoolManager.Instance != null && SelectedTurret.prefab != null)
+        {
+            go = TurretPoolManager.Instance.SpawnTurret(SelectedTurret.prefab, node.GetBuildPosition(), Quaternion.identity, node.positionOffset.transform);
+        }
+        else
+        {
+            go = Instantiate(SelectedTurret.prefab, node.GetBuildPosition(), Quaternion.identity, node.positionOffset.transform);
+        }
+        
         node.turretBase = go;
 
         // Initialize with default bullet if one exists

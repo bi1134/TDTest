@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+using System;
+
 /// <summary>
 /// GDD Enemy Properties:
 /// - Health, Speed, ShieldHP
@@ -36,10 +38,14 @@ public class Enemy : MonoBehaviour
     /// GDD: Some enemies reduce damage from frontal direct-fire attacks (Barrier)
     /// </summary>
     [Header("Barrier (GDD: directional damage reduction)")]
-    public bool hasBarrier = false;
+    public float maxBarrierHP = 0f;
     [Range(0f, 1f)]
     [Tooltip("Damage reduction from frontal attacks (0 = no reduction, 1 = full block)")]
     public float barrierReduction = 0.5f;
+
+    [Header("Visuals")]
+    [Tooltip("If true, hits on unshielded enemy play Blood. If false, they play DefaultHit sparks.")]
+    public bool isFleshy = true;
 
     [Header("Active Debuffs (Runtime)")]
     [SerializeField] private float slowMultiplier = 1f;
@@ -48,6 +54,15 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float fireDOTRemainingTime = 0f;
     [SerializeField] private bool isStunned = false;
     [SerializeField] private float stunRemainingTime = 0f;
+    [SerializeField] private float currentBarrierHP = 0f;
+    [SerializeField] private bool isSpawning = true;
+
+    // Object Pooling
+    public GameObject SourcePrefab { get; set; }
+
+    // Public Events
+    public event Action OnDeath;
+    public event Action OnRespawn;
 
     // Public accessors
     public float CurrentHealth => currentHealth;
@@ -58,17 +73,68 @@ public class Enemy : MonoBehaviour
     public bool IsStunned => isStunned;
     public bool IsAlive => currentHealth > 0;
     public bool HasActiveShield => currentShieldHP > 0;
+    public bool HasBarrier => currentBarrierHP > 0;
+    public bool IsSpawning => isSpawning;
 
 
     // Navigation
     private List<Vector3> pathWaypoints;
     private int targetWaypointIndex;
     private float reachThreshold = 0.5f;
+    
+    // Cached references
+    private Collider col;
+
+    public Vector3 TargetPoint => col != null ? col.bounds.center : transform.position + Vector3.up * 0.5f;
 
     protected virtual void Start()
     {
+        col = GetComponentInChildren<Collider>();
         currentHealth = maxHealth;
+        currentBarrierHP = maxBarrierHP;
         // Optional: currentShieldHP = maxShieldHP; if desired
+    }
+
+    /// <summary>
+    /// Called by EnemyAnimator when the initial drop/jump animation completes
+    /// </summary>
+    public void FinishSpawning()
+    {
+        isSpawning = false;
+    }
+
+    /// <summary>
+    /// Resets the enemy to its pristine spawned state for Object Pooling.
+    /// </summary>
+    public virtual void ResetEnemy()
+    {
+        // Restore Health / Shields
+        currentHealth = maxHealth;
+        currentBarrierHP = maxBarrierHP;
+        currentShieldHP = maxShieldHP;
+
+        // Clear Debuffs
+        slowMultiplier = 1f;
+        vulnerabilityMultiplier = 1f;
+        fireDOTDamagePerSecond = 0f;
+        fireDOTRemainingTime = 0f;
+        isStunned = false;
+        stunRemainingTime = 0f;
+
+        // Reset Spawn State
+        isSpawning = true;
+
+        // Re-enable Colliders
+        if (col != null) col.enabled = true;
+
+        // Stop any currently running coroutines (like slow expiration)
+        StopAllCoroutines();
+
+        // Cancel pending Invokes (like Death Poof or ReturnToPool)
+        CancelInvoke();
+
+        // Notify subscribers (like Animator) to reset their state
+        OnRespawn?.Invoke();
     }
 
     /// <summary>
@@ -99,7 +165,7 @@ public class Enemy : MonoBehaviour
         ProcessStun();
         
         // Move
-        if (!isStunned && IsAlive)
+        if (!isStunned && !isSpawning && IsAlive)
         {
             MoveAlongPath();
         }
@@ -170,8 +236,24 @@ public class Enemy : MonoBehaviour
 
     protected virtual void Die()
     {
+        if (currentHealth <= 0 && currentSpeed > 0) 
+            currentSpeed = 0; // Precaution
+            
         Debug.Log($"{gameObject.name} has died!");
         SoundEvents.TriggerEnemyDeath(this);
+        
+        // Initial blood splatter (or metal spark) on death
+        if (isFleshy)
+        {
+            VFXManager.Instance?.PlayEffect(VFXType.Blood, transform.position);
+        }
+        else
+        {
+            VFXManager.Instance?.PlayEffect(VFXType.DefaultHit, transform.position);
+        }
+        
+        // Disable physics/colliders so it stops blocking rays and bullets
+        if (col != null) col.enabled = false;
         
         // Roll for Stat Shard Drop
         if (statShardPrefab != null && UnityEngine.Random.value <= statShardDropChance)
@@ -180,9 +262,6 @@ public class Enemy : MonoBehaviour
         }
 
         // Assuming PlayerStats and WaveManager are accessible
-        // You might need to add 'using static YourNamespace.PlayerStats;' or similar
-        // if PlayerStats is a static class not in the global namespace.
-        // For WaveManager, ensure it's a singleton or accessible instance.
         if (WaveManager.Instance != null)
         {
             WaveManager.Instance.OnEnemyDeath();
@@ -192,7 +271,34 @@ public class Enemy : MonoBehaviour
         PlayerStats.wallet += moneyReward;
         Debug.Log($"Rewarded {moneyReward} money. New Balance: {PlayerStats.wallet}");
 
-        Destroy(gameObject);
+        // Trigger animation event and delay destroy
+        OnDeath?.Invoke();
+        
+        // Ensure it doesn't stay alive in logic
+        currentHealth = 0;
+        
+        // Spawn poof right before destruction (2 seconds from now)
+        Invoke(nameof(SpawnDeathPoof), 1.95f);
+        
+        // Delay pool return 2 seconds for animation to play
+        Invoke(nameof(ReturnToPool), 2f);
+    }
+    
+    private void ReturnToPool()
+    {
+        if (EnemyPoolManager.Instance != null && SourcePrefab != null)
+        {
+            EnemyPoolManager.Instance.ReturnToPool(this);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+    
+    private void SpawnDeathPoof()
+    {
+        VFXManager.Instance?.PlayEffect(VFXType.DeathPoof, transform.position);
     }
 
 
@@ -241,16 +347,49 @@ public class Enemy : MonoBehaviour
     /// - Shield HP absorbs damage first
     /// - Vulnerability affects normal HP only
     /// </summary>
-    public void TakeDamage(float damage, bool bypassShield = false)
+    public void TakeDamage(float damage, bool bypassShield = false, Vector3 hitSourcePos = default)
     {
         if (!IsAlive) return;
 
         float remainingDamage = damage;
 
-        // Shield HP absorbs damage first (GDD rule) unless bypassed
+        // 1. Barrier Reduction & Damage
+        if (currentBarrierHP > 0 && hitSourcePos != default)
+        {
+            // Simple frontal check (dot product > 0.5 ~ 60 degrees front cone)
+            Vector3 dirToSource = (hitSourcePos - transform.position).normalized;
+            if (Vector3.Dot(transform.forward, dirToSource) > 0.5f)
+            {
+                // Attack hit the barrier!
+                // Barrier mitigates damage for the health pool
+                float mitigatedDamage = remainingDamage * barrierReduction;
+                remainingDamage -= mitigatedDamage;
+                
+                // But the Barrier itself takes the brute force of the attack
+                if (damage >= currentBarrierHP)
+                {
+                    currentBarrierHP = 0; // Barrier breaks!
+                    VFXManager.Instance?.PlayEffect(VFXType.ShieldSpark, transform.position, dirToSource);
+                }
+                else
+                {
+                    currentBarrierHP -= damage;
+                }
+            }
+        }
+
+        // 2. Shield HP absorbs remaining damage
         if (currentShieldHP > 0 && !bypassShield)
         {
             SoundEvents.TriggerEnemyHit(this, true); // Shield Hit
+            
+            // Spawn Spark if hit source is known
+            if (hitSourcePos != default)
+            {
+                Vector3 dirToSource = (hitSourcePos - transform.position).normalized;
+                VFXManager.Instance?.PlayEffect(VFXType.ShieldSpark, transform.position, dirToSource);
+            }
+
             if (remainingDamage >= currentShieldHP)
             {
                 remainingDamage -= currentShieldHP;
@@ -262,9 +401,16 @@ public class Enemy : MonoBehaviour
                 remainingDamage = 0;
             }
         }
-        else
+        else if (remainingDamage > 0)
         {
             SoundEvents.TriggerEnemyHit(this, false); // Flesh Hit
+            
+            // Spawn Default Spark on normal hits (Blood is reserved for Death)
+            if (hitSourcePos != default && !bypassShield)
+            {
+                Vector3 dirToSource = (hitSourcePos - transform.position).normalized;
+                VFXManager.Instance?.PlayEffect(VFXType.DefaultHit, transform.position, dirToSource);
+            }
         }
 
         // Apply vulnerability multiplier to normal health damage only
@@ -403,7 +549,7 @@ public class Enemy : MonoBehaviour
     /// </summary>
     public bool IsAttackFromFront(Vector3 attackDirection)
     {
-        if (!hasBarrier) return false;
+        if (!HasBarrier) return false;
         
         float dot = Vector3.Dot(transform.forward, -attackDirection.normalized);
         return dot > 0.5f; // Within ~60 degree frontal cone
@@ -460,7 +606,7 @@ public class Enemy : MonoBehaviour
             if (vulnerabilityMultiplier > 1f) debuffs += "[VULN] ";
             if (fireDOTRemainingTime > 0) debuffs += "[BURN] ";
             if (isStunned) debuffs += "[STUN] ";
-            if (hasBarrier) debuffs += "[BARRIER] ";
+            if (HasBarrier) debuffs += "[BARRIER] ";
             
             if (!string.IsNullOrEmpty(debuffs))
             {

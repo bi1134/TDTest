@@ -22,7 +22,9 @@ public class BulletProjectile : MonoBehaviour
     private BulletPropertiesSO settings;
 
     // Masks
-    [Header("Layer Masks")]
+    [HideInInspector] public GameObject SourcePrefab { get; set; }
+
+    [Header("Flight State")]
     [SerializeField] private LayerMask enemyMask;
     [SerializeField] private LayerMask groundMask;
     [Tooltip("Layers the bullet will ALWAYS pass through (e.g. Turret, Bullet, UI)")]
@@ -48,19 +50,8 @@ public class BulletProjectile : MonoBehaviour
     private void OnEnable()
     {
         rb = GetComponent<Rigidbody>();
-        isActive = true;
+        isActive = false; // Note: Initialize sets this to true!
         spawnTime = Time.time;
-        
-        // Use runtime settings or fall back to default
-        var activeSettings = settings ?? defaultSettings;
-        if (activeSettings == null)
-        {
-            Debug.LogWarning("BulletProjectile: No settings assigned!");
-            return;
-        }
-        
-        bounceRemaining = activeSettings.maxBounces;
-        SetupVisuals(activeSettings);
     }
 
     private void SetupVisuals(BulletPropertiesSO activeSettings)
@@ -77,9 +68,8 @@ public class BulletProjectile : MonoBehaviour
 
         if (tracer != null && tracer.TryGetComponent(out TrailRenderer trail))
         {
-            tracer.SetActive(true);
+            tracer.SetActive(false); // Disable it initially so it doesn't draw a line from the pool
             trail.Clear();
-            trail.transform.position = transform.position;
 
             var mpb = new MaterialPropertyBlock();
             trail.GetPropertyBlock(mpb);
@@ -149,6 +139,7 @@ public class BulletProjectile : MonoBehaviour
 
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
+        rb.position = transform.position; // Force Rigidbody to snap here before force is applied.
 
         if (velocityOverride.HasValue)
             rb.linearVelocity = velocityOverride.Value;
@@ -178,9 +169,12 @@ public class BulletProjectile : MonoBehaviour
         }
 
         // Update visuals after settings are set
-        SetupVisuals(settings);
-        
         var activeSettings = settings ?? defaultSettings;
+        if (activeSettings != null)
+        {
+            bounceRemaining = activeSettings.maxBounces;
+            SetupVisuals(activeSettings);
+        }
         if (activeSettings != null)
         {
             StartCoroutine(DestroySelf(activeSettings.maxLifeTime));
@@ -189,6 +183,23 @@ public class BulletProjectile : MonoBehaviour
         {
             StartCoroutine(DestroySelf(3f)); // Fallback
         }
+        
+        isActive = true;
+        
+        if (tracer != null && tracer.TryGetComponent(out TrailRenderer tr))
+        {
+            StartCoroutine(EnableTrailDelayed(tr));
+        }
+    }
+
+    private IEnumerator EnableTrailDelayed(TrailRenderer tr)
+    {
+        // Wait until the physics engine actually moves the object to the fire point
+        yield return new WaitForFixedUpdate();
+        yield return new WaitForEndOfFrame();
+        
+        tracer.SetActive(true);
+        tr.Clear();
     }
 
     /// <summary>
@@ -210,6 +221,21 @@ public class BulletProjectile : MonoBehaviour
     // Convenience overloads
     public void Initialize(Vector3 dir, float speed, float up, float dmg)
         => Initialize(dir, speed, up, dmg, null, null, false, null);
+
+    /// <summary>
+    /// Resets the bullet state when pulled from the ObjectPool.
+    /// </summary>
+    public void ResetBullet()
+    {
+        isActive = false;
+
+        // Reset Physics
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+    }
 
     public void Initialize(Vector3 dir, float speed, float up, float dmg, BulletPropertiesSO bulletSO)
         => Initialize(dir, speed, up, dmg, bulletSO, null, false, null);
@@ -352,6 +378,8 @@ public class BulletProjectile : MonoBehaviour
                     BulletEffectApplicator.ApplyEffect(enemy, activeSettings, baseDamage, attackDir);
                 }
                 
+                // For non-explosive bullet hits, Enemy.TakeDamage will spawn Blood/Sparks.
+                
                 // Arc hitting enemy: check for zone effect (elemental only)
                 if (isArcProjectile)
                 {
@@ -372,6 +400,7 @@ public class BulletProjectile : MonoBehaviour
         if (isArcProjectile && isGroundHit)
         {
             SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, false); // Hit Ground
+            VFXManager.Instance?.PlayEffect(VFXType.GroundDust, hitPoint, hitNormal);
             SpawnGroundZone(hitPoint);
             return;
         }
@@ -401,6 +430,7 @@ public class BulletProjectile : MonoBehaviour
             else
             {
                 SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, false); // Generic hit wall/object
+                VFXManager.Instance?.PlayEffect(VFXType.GroundDust, hitPoint, hitNormal);
                 Deactivate();
             }
         }
@@ -442,6 +472,7 @@ public class BulletProjectile : MonoBehaviour
         var activeSettings = settings ?? defaultSettings;
         
         SoundEvents.TriggerAOEExplosion(this);
+        VFXManager.Instance?.PlayEffect(VFXType.GenericExplosion, center);
 
         // Use BulletPropertiesSO explosive radius if bullet type is Explosive
         // Otherwise fall back to impactPayload (from TurretPropertiesSO)
@@ -582,7 +613,15 @@ public class BulletProjectile : MonoBehaviour
 
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
-        Destroy(gameObject);
+        
+        if (BulletPoolManager.Instance != null && SourcePrefab != null)
+        {
+            BulletPoolManager.Instance.ReturnToPool(this);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     private float GetBulletRadius()

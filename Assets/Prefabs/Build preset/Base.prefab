@@ -60,7 +60,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 230699074183251659}
   - {fileID: 8517856028697982970}
@@ -132,7 +132,47 @@ MonoBehaviour:
   topNeighbors:
   - {fileID: -6118360965788740375, guid: d385dc729ee8c614da494bd453fa6940, type: 3}
   bottomNeighbors: []
-  variants: []
+  variants:
+  - variantName: 
+    prefab: {fileID: 1797847811283959714, guid: 1b0526a89aaff4543bacb0392771b477, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 5
+      mustNotMatch: 0
+  - variantName: 
+    prefab: {fileID: 1320677788082226765, guid: 2d2ac717a742c0e40b67c1f57db66bf1, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 5
+      mustNotMatch: 0
+  - variantName: 
+    prefab: {fileID: 2381607921457751805, guid: e7afc920aad1a5444be2c7ea6e8d3fa0, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 0
+  - variantName: 
+    prefab: {fileID: 3428005946277847180, guid: f361319ccacc5aa4aba40ddace9b0133, type: 3}
+    spawnWeight: 0
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 5
+      mustNotMatch: 0
 --- !u!1 &8830717408593657364
 GameObject:
   m_ObjectHideFlags: 0

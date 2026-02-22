@@ -4,10 +4,24 @@ public class Turret : MonoBehaviour
 {
     [Header("Parts")]
     [SerializeField] private TurretBaseModule baseModule;
-    [SerializeField] public Transform partToRotate;
+    [UnityEngine.Serialization.FormerlySerializedAs("partToRotate")]
+    [SerializeField] public Transform baseRotationPart;
+    [Tooltip("Assign if using Split_BaseY_BarrelX rotation mode")]
+    [SerializeField] public Transform barrelRotationPart;
     [SerializeField] public TurretBarrelModule turretBarrel;
+    [Tooltip("Optional: Where the LOS raycasts originate from. If empty, uses Turret base + 0.5f Y.")]
+    [SerializeField] public Transform losStartPoint;
+
+    public enum TurretRotationMode
+    {
+        None,
+        SinglePart_BothAxes,
+        Split_BaseY_BarrelX,
+        Base_Y_Only
+    }
 
     [Header("Targeting")]
+    public TurretRotationMode rotationMode = TurretRotationMode.Base_Y_Only;
     public float range = 15f;
     public float rotationSpeed = 10f;
     public string enemyTag = "Enemy";
@@ -57,7 +71,10 @@ public class Turret : MonoBehaviour
         }
 
         // --- Prediction Logic ---
-        Vector3 aimPoint = target.position;
+        Enemy enemyScript = target.GetComponent<Enemy>();
+        Vector3 trueTargetPos = enemyScript != null ? enemyScript.TargetPoint : (target.position + Vector3.up * 0.5f);
+        
+        Vector3 aimPoint = trueTargetPos;
         TurretPropertiesSO props = baseModule.GetTurretProperties();
         
         if (props != null)
@@ -71,7 +88,7 @@ public class Turret : MonoBehaviour
                 // Arc Prediction - Fixed Height Logic
                 aimPoint = PredictionHelpers.PredictArcInterception(
                     transform.position, 
-                    target.position, 
+                    trueTargetPos, 
                     targetVelocity, 
                     props.upwardForce, // Use upwardForce instead of speed
                     Physics.gravity.magnitude
@@ -80,7 +97,7 @@ public class Turret : MonoBehaviour
             else if (props.bulletSpeed > 0)
             {
                 // Linear Prediction
-                aimPoint = PredictionHelpers.PredictPosition(transform.position, target.position, targetVelocity, props.bulletSpeed);
+                aimPoint = PredictionHelpers.PredictPosition(transform.position, trueTargetPos, targetVelocity, props.bulletSpeed);
             }
             
             // LOS Check (only if not Arc)
@@ -89,9 +106,9 @@ public class Turret : MonoBehaviour
                 // Visualization
                 Debug.DrawLine(transform.position + Vector3.up, aimPoint, Color.yellow); // Aim Line
                 
-                Vector3 start = transform.position + Vector3.up * 0.5f;
+                Vector3 start = losStartPoint != null ? losStartPoint.position : (transform.position + Vector3.up * 0.5f);
                 // Check LOS to actual target center
-                Vector3 end = target.position + Vector3.up * 0.5f;
+                Vector3 end = trueTargetPos;
                 
                 // Throttled LOS Check
                 losCheckTimer -= Time.deltaTime;
@@ -99,65 +116,56 @@ public class Turret : MonoBehaviour
                 {
                     losCheckTimer = 0.15f; // Check every 0.15s
                     
-                    // Cone Logic: 9 Rays Horizontal Spread
-                    // Center 3 (Indices 3,4,5) = Lock In (Fire)
-                    // Outer 3 (0,1,2 & 6,7,8) = Aware (Track only)
-                    
                     int mask = ~obstacleExcludeMask;
                     int clearCenterCount = 0;
                     int clearOuterCount = 0;
                     
                     Vector3 lookDir = (end - start).normalized;
-                    Vector3 right = Vector3.Cross(lookDir, Vector3.up);
-                    // float coneWidth = 2.0f; // Unused
-                    // Let's use Angle. 
-                    float angleStep = 5f; // 5 degrees per ray.
+                    Vector3 right = Vector3.Cross(Vector3.up, lookDir).normalized;
+                    if (right == Vector3.zero) right = Vector3.right;
                     
-                    for (int i = -4; i <= 4; i++)
+                    float yawStep = 5f;
+                    float pitchStep = 5f;
+                    
+                    // 3-Layered spread logic:
+                    // Top: -7.5 to +7.5 (4 rays)
+                    // Mid: -12.5 to +12.5 (6 rays)
+                    // Bot: -7.5 to +7.5 (4 rays)
+                    
+                    for (int pitchIdx = -1; pitchIdx <= 1; pitchIdx++)
                     {
-                        // -4, -3, -2 (Outer Left)
-                        // -1, 0, 1 (Center)
-                        // 2, 3, 4 (Outer Right)
+                        float pitchAngle = pitchIdx * pitchStep;
+                        int rayCount = (pitchIdx == 0) ? 6 : 4;
+                        float startYaw = (pitchIdx == 0) ? -12.5f : -7.5f;
                         
-                        Vector3 origin = start;
-                        // Spread destination perpendicular to lookDir?
-                        // Or Rotate direction?
-                        // Rotating direction is better for Cone.
-                        Vector3 rayDir = Quaternion.Euler(0, i * angleStep * 0.5f, 0) * lookDir; 
-                        
-                        // Debug visuals handled later? 
-                        // Actually let's just Linecast to a spread of points at target distance
-                        // Use target width? 
-                        // User said "cone pattern".
-                        
-                        Vector3 rayEnd = start + rayDir * Vector3.Distance(start, end);
-                        
-                        bool rayClear = false;
-                        if (Physics.Linecast(origin, rayEnd, out RaycastHit hit, mask))
+                        for (int i = 0; i < rayCount; i++)
                         {
-                             if (hit.collider.gameObject == target.gameObject || hit.collider.transform.IsChildOf(target.transform) || hit.collider.CompareTag(enemyTag))
-                             {
-                                 rayClear = true;
-                             }
-                        }
-                        else
-                        {
-                            // Didn't hit anything? Means clear path to infinity/range?
-                            // If we didn't hit the target (because spread is wide), is it clear?
-                            // If we didn't hit a WALL, it is 'Clear' in terms of obstruction.
-                            // But we want to know if we see the TARGET.
-                            // If the ray misses the target, it's not "seeing" it.
-                            rayClear = false; // Rigid check: Must hit target.
-                        }
-                        
-                        // Debug Rays
-                        if (i == 0) Debug.DrawLine(origin, rayEnd, rayClear ? Color.green : Color.red, 0.15f); // Main
-                        else Debug.DrawLine(origin, rayEnd, rayClear ? (Mathf.Abs(i) <= 1 ? Color.cyan : Color.gray) : Color.red, 0.15f);
-
-                        if (rayClear)
-                        {
-                            if (Mathf.Abs(i) <= 1) clearCenterCount++;
-                            else clearOuterCount++;
+                            float yawAngle = startYaw + (i * yawStep);
+                            
+                            // Rotate lookDir by yaw and pitch
+                            Quaternion spreadRot = Quaternion.AngleAxis(yawAngle, Vector3.up) * Quaternion.AngleAxis(pitchAngle, right);
+                            Vector3 rayDir = spreadRot * lookDir;
+                            Vector3 rayEnd = start + rayDir * Vector3.Distance(start, end);
+                            
+                            bool rayClear = false;
+                            if (Physics.Linecast(start, rayEnd, out RaycastHit hit, mask))
+                            {
+                                if (hit.collider.gameObject == target.gameObject || hit.collider.transform.IsChildOf(target.transform) || hit.collider.CompareTag(enemyTag))
+                                {
+                                    rayClear = true;
+                                }
+                            }
+                            
+                            // Visualize
+                            bool isCenter = (pitchIdx == 0 && (i == 2 || i == 3)); // The two middle rays of the 6-ray mid layer
+                            if (isCenter) Debug.DrawLine(start, rayEnd, rayClear ? Color.green : Color.red, 0.15f);
+                            else Debug.DrawLine(start, rayEnd, rayClear ? Color.cyan : Color.red, 0.15f);
+                            
+                            if (rayClear)
+                            {
+                                if (isCenter) clearCenterCount++;
+                                else clearOuterCount++;
+                            }
                         }
                     }
                     
@@ -212,22 +220,53 @@ public class Turret : MonoBehaviour
         }
 
         // --- Rotate ---
-        if (partToRotate != null && isTracking)
+        if (isTracking && rotationMode != TurretRotationMode.None)
         {
-            Vector3 dir = aimPoint - transform.position;
-            // Flatten Y if needed? Most turrets rotate Y only, or look at target.
-            // partToRotate usually rotates on Y axis. 
-            // If we want full 3D aiming, we need more parts. 
-            // Assuming simplified Y-rotation aiming for now, or full if LookRotation handles it.
+            Transform primaryPart = baseRotationPart != null ? baseRotationPart : barrelRotationPart;
+            Vector3 origin = primaryPart != null ? primaryPart.position : transform.position;
+            Vector3 dir = aimPoint - origin;
             
-            if (dir != Vector3.zero)
+            if (dir != Vector3.zero && primaryPart != null)
             {
                 Quaternion look = Quaternion.LookRotation(dir);
-                Vector3 rot = Quaternion.Lerp(partToRotate.rotation, look, Time.deltaTime * rotationSpeed).eulerAngles;
-                partToRotate.rotation = Quaternion.Euler(0f, rot.y, 0f); // Limit to Y axis for main body??
-                // If partToRotate is the HEAD, it might pitch too?
-                // The original code did: partToRotate.rotation = Quaternion.Euler(0f, rot.y, 0f);
-                // I will preserve that behavior.
+                Vector3 rot = Quaternion.Lerp(primaryPart.rotation, look, Time.deltaTime * rotationSpeed).eulerAngles;
+                
+                switch (rotationMode)
+                {
+                    case TurretRotationMode.Base_Y_Only:
+                        primaryPart.rotation = Quaternion.Euler(0f, rot.y, 0f);
+                        break;
+                        
+                    case TurretRotationMode.SinglePart_BothAxes:
+                        primaryPart.rotation = Quaternion.Euler(rot.x, rot.y, 0f);
+                        // Also apply to barrel if they assigned BOTH by accident, to prevent confusion
+                        if (baseRotationPart != null && barrelRotationPart != null)
+                        {
+                             barrelRotationPart.rotation = Quaternion.Euler(rot.x, rot.y, 0f);
+                        }
+                        break;
+                        
+                    case TurretRotationMode.Split_BaseY_BarrelX:
+                        if (baseRotationPart != null) 
+                            baseRotationPart.rotation = Quaternion.Euler(0f, rot.y, 0f);
+                            
+                        if (barrelRotationPart != null && baseRotationPart != null)
+                        {
+                            Vector3 localDir = baseRotationPart.InverseTransformDirection(dir);
+                            if (localDir != Vector3.zero)
+                            {
+                                Quaternion localLook = Quaternion.LookRotation(localDir);
+                                Vector3 barrelRot = Quaternion.Lerp(barrelRotationPart.localRotation, localLook, Time.deltaTime * rotationSpeed).eulerAngles;
+                                barrelRotationPart.localRotation = Quaternion.Euler(barrelRot.x, 0f, 0f);
+                            }
+                        }
+                        else if (barrelRotationPart != null && baseRotationPart == null)
+                        {
+                             // Fallback
+                             barrelRotationPart.rotation = Quaternion.Euler(rot.x, rot.y, 0f);
+                        }
+                        break;
+                }
             }
         }
 

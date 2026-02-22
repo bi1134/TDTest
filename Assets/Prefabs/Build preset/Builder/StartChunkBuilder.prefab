@@ -47,7 +47,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TerrainGenerator.WFCBuilder
   unityGrid: {fileID: 18636889987257073}
   gridSize: {x: 10, y: 5, z: 10}
-  cellAlignment: {x: 0.5, y: 0, z: 0.5}
+  cellAlignment: {x: 0.5, y: 1.5, z: 0.5}
   cellPrefab: {fileID: -8726833224465654848, guid: f96af54bd13797c478bb082b34023d55, type: 3}
   autoResizeGridToMap: 1
   strictLayerHeight: 1
@@ -978,7 +978,7 @@ Grid:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8300931083251462615}
   m_Enabled: 1
-  m_CellSize: {x: 1, y: 1, z: 1}
+  m_CellSize: {x: 1, y: 0.4, z: 1}
   m_CellGap: {x: 0, y: 0, z: 0}
   m_CellLayout: 0
   m_CellSwizzle: 0

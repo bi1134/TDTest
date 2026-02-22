@@ -4,8 +4,10 @@ using System.Collections.Generic;
 
 public class TurretBarrelModule : MonoBehaviour
 {
-    [SerializeField] private Transform firePoint;
-    [SerializeField] private ParticleSystem muzzleFlash;
+    [SerializeField] private Transform[] firePoints;
+    [SerializeField] private ParticleSystem[] muzzleFlashes;
+
+    private int currentBarrelIndex = 0;
 
     [Header("Bullet Configuration (Authoritative)")]
     [Tooltip("The bullet prefab to use for projectile-based fire modes")]
@@ -62,8 +64,12 @@ public class TurretBarrelModule : MonoBehaviour
     public void FireBullet(Vector3 targetPos, TurretPropertiesSO weaponStats, int pelletsOverride = -1, float damageOverride = -1f)
     {
         if (bulletPrefab == null) return;
-
-        Vector3 baseDir = (targetPos - firePoint.position).normalized;
+        
+        // Single shot -> use current barrel
+        // Multiple pellets -> divide among barrels? For now, we spawn all from the current barrel
+        // but let's just use the current barrel for the base direction calculation.
+        Transform activeFirePoint = GetCurrentFirePoint();
+        Vector3 baseDir = (targetPos - activeFirePoint.position).normalized;
 
         float effSpread = Mathf.Max(0f, weaponStats.spread + Random.Range(-jitterSpreadDeg, jitterSpreadDeg));
         float effSpreadX = weaponStats.spreadX + Random.Range(-jitterLineExtentX, jitterLineExtentX);
@@ -85,7 +91,10 @@ public class TurretBarrelModule : MonoBehaviour
         else
         {
             // Instant Fire for single pellet
-            SpawnProjectile(directions[0], weaponStats, damageOverride);
+            int barrelToUse = currentBarrelIndex;
+            PlayMuzzleFlash(barrelToUse);
+            SpawnProjectile(directions[0], weaponStats, damageOverride, GetFirePoint(barrelToUse));
+            AdvanceBarrel();
         }
     }
 
@@ -119,15 +128,30 @@ public class TurretBarrelModule : MonoBehaviour
                 yield return Helpers.GetWaitForSecond(waitTime);
             }
             
+            int barrelToUse = currentBarrelIndex;
+            PlayMuzzleFlash(barrelToUse);
+
             currentTime = targetTime; // Advance simulated time to target (even if we rounded wait)
-            SpawnProjectile(directions[i], weaponStats, damageOverride);
+            SpawnProjectile(directions[i], weaponStats, damageOverride, GetFirePoint(barrelToUse));
+            AdvanceBarrel();
             firedCount++;
         }
     }
 
-    private void SpawnProjectile(Vector3 dir, TurretPropertiesSO weaponStats, float damageOverride = -1f)
+    private void SpawnProjectile(Vector3 dir, TurretPropertiesSO weaponStats, float damageOverride = -1f, Transform originPoint = null)
     {
-        var bulletObj = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(dir));
+        if (originPoint == null) originPoint = transform;
+        BulletProjectile bulletObj = null;
+
+        if (BulletPoolManager.Instance != null && bulletPrefab != null)
+        {
+            bulletObj = BulletPoolManager.Instance.SpawnBullet(bulletPrefab.gameObject, originPoint.position, Quaternion.LookRotation(dir));
+        }
+        else
+        {
+            var go = Instantiate(bulletPrefab, originPoint.position, Quaternion.LookRotation(dir));
+            bulletObj = go.GetComponent<BulletProjectile>();
+        }
         if (bulletObj != null)
         {
             bulletObj.SetShooter(this.gameObject);
@@ -142,8 +166,12 @@ public class TurretBarrelModule : MonoBehaviour
     public void FireAOE(Vector3 targetPos, TurretPropertiesSO s)
     {
         if (bulletPrefab == null) return;
+        
+        int barrelToUse = currentBarrelIndex;
+        PlayMuzzleFlash(barrelToUse);
+        Transform fireOrigin = GetFirePoint(barrelToUse);
 
-        Vector3 dir = (targetPos - firePoint.position).normalized;
+        Vector3 dir = (targetPos - fireOrigin.position).normalized;
 
         // Get explosion properties from BulletPropertiesSO (now the authoritative source)
         var bulletSO = currentBulletSO;
@@ -156,19 +184,48 @@ public class TurretBarrelModule : MonoBehaviour
             explodeOnTimeout = bulletSO != null ? bulletSO.explodeOnTimeout : false
         };
 
-        var proj = Instantiate(bulletPrefab, firePoint.position, Quaternion.LookRotation(dir));
-        proj.SetShooter(gameObject);
-        proj.Initialize(dir, s.bulletSpeed, s.upwardForce, s.damage, currentBulletSO, payload);
+        BulletProjectile proj = null;
+        if (BulletPoolManager.Instance != null && bulletPrefab != null)
+        {
+            proj = BulletPoolManager.Instance.SpawnBullet(bulletPrefab.gameObject, fireOrigin.position, Quaternion.LookRotation(dir));
+        }
+        else
+        {
+            var go = Instantiate(bulletPrefab, fireOrigin.position, Quaternion.LookRotation(dir));
+            proj = go.GetComponent<BulletProjectile>();
+        }
+        
+        if (proj != null)
+        {
+            proj.SetShooter(gameObject);
+            proj.Initialize(dir, s.bulletSpeed, s.upwardForce, s.damage, currentBulletSO, payload);
+        }
+        
+        AdvanceBarrel();
     }
 
     public void FireArc(Vector3 targetPos, TurretPropertiesSO s, float minAngleDeg = 25f)
     {
         if (bulletPrefab == null) return;
+        
+        int barrelToUse = currentBarrelIndex;
+        PlayMuzzleFlash(barrelToUse);
+        Transform fireOrigin = GetFirePoint(barrelToUse);
 
-        var proj = Instantiate(bulletPrefab, firePoint.position, Quaternion.identity);
-        proj.SetShooter(gameObject);
+        BulletProjectile proj = null;
+        if (BulletPoolManager.Instance != null && bulletPrefab != null)
+        {
+            proj = BulletPoolManager.Instance.SpawnBullet(bulletPrefab.gameObject, fireOrigin.position, Quaternion.identity);
+        }
+        else
+        {
+            var go = Instantiate(bulletPrefab, fireOrigin.position, Quaternion.identity);
+            proj = go.GetComponent<BulletProjectile>();
+        }
+        
+        if (proj != null) proj.SetShooter(gameObject);
 
-        Vector3 origin = firePoint.position;
+        Vector3 origin = fireOrigin.position;
         // Vector3 direction = (targetPos - origin).normalized; // Not used for velocity calculation now due to override
         
         // Fixed Height Arc Logic (requested by User)
@@ -212,6 +269,8 @@ public class TurretBarrelModule : MonoBehaviour
         
         // Use v0 override
         proj.Initialize(default, 0f, 0f, s.damage, currentBulletSO, null, true, v0);
+        
+        AdvanceBarrel();
     }
 
     #endregion
@@ -226,8 +285,17 @@ public class TurretBarrelModule : MonoBehaviour
     public void FireBeam(Enemy target, TurretPropertiesSO weaponStats, float deltaTime, float damageOverride = -1f)
     {
         if (target == null || !target.IsAlive || weaponStats == null) return;
+        
+        // Only play muzzle flash periodically for continuous beams to avoid spam
+        int barrelToUse = currentBarrelIndex;
+        if (Time.time - beamEffectTimer > 0.1f)
+        {
+            PlayMuzzleFlash(barrelToUse);
+            beamEffectTimer = Time.time;
+        }
 
-        Vector3 origin = firePoint.position;
+        Transform fireOrigin = GetFirePoint(barrelToUse);
+        Vector3 origin = fireOrigin.position;
         Vector3 targetPos = target.transform.position;
         Vector3 dir = (targetPos - origin).normalized;
 
@@ -263,7 +331,8 @@ public class TurretBarrelModule : MonoBehaviour
     /// </summary>
     public void FireBeam(Vector3 targetPos, TurretPropertiesSO weaponStats, BulletPropertiesSO bulletProperties = null)
     {
-        Vector3 origin = firePoint.position;
+        Transform activeFirePoint = GetCurrentFirePoint();
+        Vector3 origin = activeFirePoint.position;
         Vector3 dir = (targetPos - origin).normalized;
         
         if (Physics.Raycast(origin, dir, out RaycastHit hit, 100f))
@@ -319,7 +388,8 @@ public class TurretBarrelModule : MonoBehaviour
                 // Apply stun + chain using BulletEffectApplicator
                 // Use reduced damage for beam chain balance
                 float chainDamage = 5f; // Base chain damage for beam
-                Vector3 dir = (target.transform.position - firePoint.position).normalized;
+                Transform activeFirePoint = GetCurrentFirePoint();
+                Vector3 dir = (target.transform.position - activeFirePoint.position).normalized;
                 BulletEffectApplicator.ApplyEffect(target, currentBulletSO, chainDamage, dir);
                 break;
 
@@ -370,6 +440,48 @@ public class TurretBarrelModule : MonoBehaviour
             BulletType.Buff => Color.green,
             _ => Color.cyan
         };
+    }
+
+    #endregion
+
+    #region Visuals & FX
+
+    private Transform GetCurrentFirePoint()
+    {
+        if (firePoints == null || firePoints.Length == 0) return transform;
+        if (currentBarrelIndex >= firePoints.Length) currentBarrelIndex = 0;
+        
+        Transform fp = firePoints[currentBarrelIndex];
+        return fp != null ? fp : transform;
+    }
+
+    private Transform GetFirePoint(int index)
+    {
+        if (firePoints == null || firePoints.Length == 0) return transform;
+        if (index >= firePoints.Length) index = 0;
+        
+        Transform fp = firePoints[index];
+        return fp != null ? fp : transform;
+    }
+
+    private void AdvanceBarrel()
+    {
+        if (firePoints == null || firePoints.Length <= 1) return;
+        currentBarrelIndex = (currentBarrelIndex + 1) % firePoints.Length;
+    }
+
+    private void PlayMuzzleFlash(int index)
+    {
+        if (muzzleFlashes == null || muzzleFlashes.Length == 0) return;
+        if (index >= muzzleFlashes.Length) index = 0;
+
+        ParticleSystem flash = muzzleFlashes[index];
+        if (flash != null)
+        {
+            // Force stop and clear so it can play rapidly even if the previous effect hasn't ended
+            flash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            flash.Play(true);
+        }
     }
 
     #endregion

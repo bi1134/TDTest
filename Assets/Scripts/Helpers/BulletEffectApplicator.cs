@@ -33,17 +33,17 @@ public static class BulletEffectApplicator
         switch (bullet.bulletType)
         {
             case BulletType.Normal:
-                enemy.TakeDamage(damage);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
                 break;
 
             case BulletType.Explosive:
                 // Explosive is handled separately with AoE
-                enemy.TakeDamage(damage);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
                 break;
 
             case BulletType.Electric:
                 // Damage + Stun + Chain (single target only)
-                enemy.TakeDamage(damage);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
                 enemy.ApplyStun(bullet.electricStunDuration);
                 // Chain from this single target
                 ChainToNearbyEnemies(enemy, bullet, damage, new HashSet<Enemy> { enemy });
@@ -51,13 +51,13 @@ public static class BulletEffectApplicator
 
             case BulletType.Fire:
                 // Damage + DOT
-                enemy.TakeDamage(damage);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
                 enemy.ApplyFireDOT(bullet.fireDOTDamagePerSecond, bullet.fireDOTDuration);
                 break;
 
             case BulletType.Ice:
                 // Damage + Slow
-                enemy.TakeDamage(damage);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
                 enemy.ApplySlow(bullet.iceSlowPercent, bullet.iceSlowDuration);
                 break;
 
@@ -101,27 +101,27 @@ public static class BulletEffectApplicator
             switch (bullet.bulletType)
             {
                 case BulletType.Normal:
-                    enemy.TakeDamage(damage);
+                    enemy.TakeDamage(damage, false, center);
                     break;
 
                 case BulletType.Explosive:
-                    enemy.TakeDamage(damage);
+                    enemy.TakeDamage(damage, false, center);
                     break;
 
                 case BulletType.Electric:
                     // Damage + Stun to all in AOE
-                    enemy.TakeDamage(damage);
+                    enemy.TakeDamage(damage, false, center);
                     enemy.ApplyStun(bullet.electricStunDuration);
                     // NO chaining within AOE - all are already hit
                     break;
 
                 case BulletType.Fire:
-                    enemy.TakeDamage(damage);
+                    enemy.TakeDamage(damage, false, center);
                     enemy.ApplyFireDOT(bullet.fireDOTDamagePerSecond, bullet.fireDOTDuration);
                     break;
 
                 case BulletType.Ice:
-                    enemy.TakeDamage(damage);
+                    enemy.TakeDamage(damage, false, center);
                     enemy.ApplySlow(bullet.iceSlowPercent, bullet.iceSlowDuration);
                     break;
 
@@ -189,8 +189,8 @@ public static class BulletEffectApplicator
             
             if (nearest == null) break;
 
-            // Apply chained damage and stun
-            nearest.TakeDamage(currentDamage);
+            // Apply chained damage and stun (originating from currentSource)
+            nearest.TakeDamage(currentDamage, false, currentSource.transform.position);
             nearest.ApplyStun(bullet.electricStunDuration * 0.5f); // Reduced stun on chain
             
             // Visual debug

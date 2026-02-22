@@ -7,6 +7,15 @@ using UnityEngine.EventSystems;
 /// TurretBaseModule - Controls WHEN and HOW the turret shoots.
 /// Does NOT own bullet properties - that's the barrel's job.
 /// </summary>
+/// </summary>
+
+[System.Serializable]
+public struct BulletVisualOverride
+{
+    public BulletType bulletType;
+    public BulletProjectile visualPrefab;
+}
+
 public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerDownHandler
 {
     [Header("Base Stats (How it shoots)")]
@@ -20,6 +29,10 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     [SerializeField] private Transform target;
 
     [SerializeField] private Turret parentNode;
+
+    [Header("Visual Overrides")]
+    [Tooltip("Allows this specific turret to use different bullet prefabs for standard bullet types (e.g., throwing rocks instead of normal bullets)")]
+    [SerializeField] private List<BulletVisualOverride> visualOverrides = new List<BulletVisualOverride>();
 
     public Color hoverColor;
     private Color startColor;
@@ -311,6 +324,8 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         int count = Mathf.Max(1, weaponStats.burstCount);
         for (int i = 0; i < count; i++)
         {
+            if (target == null) break;
+            
             // Allow bulletsPerTap per burst shot
             barrel.FireBullet(target.position, weaponStats, -1, damageOverride);
             yield return Helpers.GetWaitForSecond(weaponStats.burstInterval);
@@ -375,11 +390,17 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         description = bp.description ?? "";
         totalInvestment = bp.cost; // Initial cost
         
-        // Clone the stats so upgrades are local to this instance
-        if (weaponStats != null)
-        {
-            weaponStats = Instantiate(weaponStats);
-        }
+        // NOTE: Initialize is also called when the Turret is pulled from the Object Pool.
+        weaponStats = Resources.Load<TurretPropertiesSO>(weaponStats.name) ?? Object.Instantiate(weaponStats);
+        
+        // Reset properties in case it came from the pool with old upgrades
+        fireCooldown = 1f / weaponStats.fireRate;
+        // totalInvestment remains the base blueprint cost set above
+        currentLevel = 0;
+        
+        target = null;
+        isBeamFiring = false;
+        beamTimer = 0f;
     }
 
     private void ToggleUpgradeUI()
@@ -409,11 +430,26 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         
         if (parentNode != null)
         {
-            Destroy(parentNode.gameObject);
+            Node builtNode = parentNode.GetComponentInParent<Node>();
+            if (builtNode != null)
+            {
+                builtNode.turretBase = null; // Free up the node
+            }
+            
+            if (TurretPoolManager.Instance != null) {
+                // If it has a parent Turret script (the visual base), we should pool the parent!
+                TurretPoolManager.Instance.ReturnToPool(parentNode.gameObject);
+            } else {
+                Destroy(parentNode.gameObject);
+            }
         }
         else
         {
-            Destroy(gameObject);
+            if (TurretPoolManager.Instance != null) {
+                TurretPoolManager.Instance.ReturnToPool(gameObject);
+            } else {
+                Destroy(gameObject);
+            }
         }
     }
     
@@ -491,6 +527,16 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         var properties = bulletType.bulletProperties;
         GameObject prefabObj = properties.bulletPrefab; 
         
+        // Check for Visual Override for this specific turret
+        foreach (var over in visualOverrides)
+        {
+            if (over.bulletType == properties.bulletType && over.visualPrefab != null)
+            {
+                prefabObj = over.visualPrefab.gameObject;
+                break;
+            }
+        }
+
         if (prefabObj != null && prefabObj.TryGetComponent<BulletProjectile>(out var projectile))
         {
             // Only add cost if it's a new/different bullet (prevent infinite value stacking)

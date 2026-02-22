@@ -19,12 +19,12 @@ MonoBehaviour:
   enemyMask:
     serializedVersion: 2
     m_Bits: 128
-  damage: 30
-  fireRate: 0.5
+  damage: 50
+  fireRate: 0.25
   bulletsPerTap: 1
-  bulletSpeed: 3
-  upwardForce: 6
-  minArcAngle: 10
+  bulletSpeed: 10
+  upwardForce: 3
+  minArcAngle: 5
   accuracyError: 0
   spread: 3
   spreadX: 0

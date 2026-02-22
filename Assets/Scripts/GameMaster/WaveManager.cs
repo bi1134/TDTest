@@ -225,8 +225,16 @@ public class WaveManager : MonoBehaviour
         // Fix: Spawn slightly above path to avoid clipping
         Vector3 spawnPos = position + Vector3.up * 1.0f; // +1 Y offset
         
-        GameObject go = Instantiate(prefab, spawnPos, Quaternion.identity);
-        Enemy enemy = go.GetComponent<Enemy>();
+        Enemy enemy = null;
+        if (EnemyPoolManager.Instance != null)
+        {
+            enemy = EnemyPoolManager.Instance.SpawnEnemy(prefab, spawnPos, Quaternion.identity);
+        }
+        else
+        {
+            GameObject go = Instantiate(prefab, spawnPos, Quaternion.identity);
+            enemy = go.GetComponent<Enemy>();
+        }
         
         if (enemy != null)
         {
