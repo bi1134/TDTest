@@ -1,8 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
-public class ShopItemUI : MonoBehaviour
+public class ShopItemUI : MonoBehaviour, IPointerEnterHandler
 {
     [Header("UI References")]
     [SerializeField] private Image iconImage;
@@ -22,7 +23,11 @@ public class ShopItemUI : MonoBehaviour
         if (costText != null) costText.text = "$" + turret.cost;
 
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(() => onSelect?.Invoke(turretBlueprint));
+        button.onClick.AddListener(() => 
+        {
+            SoundEvents.TriggerButtonClicked(this);
+            onSelect?.Invoke(turretBlueprint);
+        });
     }
     
     // Overload for Bullets if needed
@@ -35,6 +40,15 @@ public class ShopItemUI : MonoBehaviour
         if (costText != null) costText.text = "$" + bullet.cost;
 
         button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(() => onSelect?.Invoke(bulletBlueprint));
+        button.onClick.AddListener(() => 
+        {
+            SoundEvents.TriggerButtonClicked(this);
+            onSelect?.Invoke(bulletBlueprint);
+        });
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        SoundEvents.TriggerButtonHovered(this);
     }
 }

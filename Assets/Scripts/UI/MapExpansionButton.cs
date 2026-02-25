@@ -31,6 +31,7 @@ public class MapExpansionButton : MonoBehaviour
     {
         if (worldManager != null)
         {
+            SoundEvents.TriggerButtonClicked(this);
             Debug.Log($"[ExpansionButton] Clicked! Expanding {direction} from {chunkCoord}");
             worldManager.ExpandInDirection(chunkCoord, direction);
             

@@ -13,9 +13,9 @@ GameObject:
   m_Layer: 0
   m_Name: WFCCell
   m_TagString: Untagged
-  m_Icon: {fileID: -5487077368411116049, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
+  m_StaticEditorFlags: 2147483647
   m_IsActive: 1
 --- !u!4 &1462336095663516864
 Transform:
@@ -44,9 +44,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c50e221f6aac6a44f862258ad2dc8278, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WFC_Sudoku.WFCCell
-  gridPosition: {x: 0, y: 0, z: 0}
-  collapsed: 0
-  possibleModules: []
+  _gridPosition: {x: 0, y: 0, z: 0}
+  _collapsed: 0
+  _possibleModules: []
+  _totalGridHeight: 1
+  _heightRatio: 0
   suppressVisuals: 0
-  totalGridHeight: 1
-  heightRatio: 0

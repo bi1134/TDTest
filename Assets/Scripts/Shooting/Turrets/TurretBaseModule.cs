@@ -104,31 +104,44 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     {
         if (isBeamFiring)
         {
-            // Currently in firing window
             beamTimer -= Time.deltaTime;
-            
+
             Enemy enemy = target.GetComponent<Enemy>();
             if (enemy != null && enemy.IsAlive)
             {
-                if (IsElementalBullet())
+                var bulletSO = barrel.CurrentBulletSO;
+                
+                float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage);
+                float dmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
+
+                if (bulletSO != null && IsElementalBullet())
                 {
-                    // Elemental: continuous damage per frame
-                    // Calculate Augmented Damage
-                    float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage); 
-                    float dmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
-                    float finalDamage = (weaponStats.damage * dmgMult) + dmgFlat;
-                    
-                    // FireBeam logic inside checks "weaponStats.damage". 
-                    // I need to change FireBeam signature to accept damage or manually handle it here.
-                    // FireBeam(Enemy target, TurretPropertiesSO weaponStats, float deltaTime) uses weaponStats.damage.
-                    // I should ideally pass the calculated damage.
-                    // Let's modify TurretBarrelModule.FireBeam(Enemy...) to take 'damagePerSecond'.
-                    
-                    // For now, I will modify the weaponStats clone temporarily? No that sticks.
-                    // I'll update TurretBarrelModule.FireBeam to take damage override.
-                    
-                    // Waiting for Barrel update, but let's assume I'll update it.
-                    barrel.FireBeam(enemy, weaponStats, Time.deltaTime, finalDamage);
+                    switch (bulletSO.bulletType)
+                    {
+                        case BulletType.Fire:
+                            // Continuous cone spray — hits everything in a fan arc
+                            float beamRange = parentNode != null ? parentNode.GetEffectiveRange() : weaponStats.coneRange;
+                            barrel.FireConeArea(weaponStats, bulletSO, Time.deltaTime, weaponStats.enemyMask, beamRange);
+                            break;
+                        
+                        case BulletType.Ice:
+                        case BulletType.Electric:
+                            // Strike at enemy position on an interval
+                            beamShotTimer -= Time.deltaTime;
+                            if (beamShotTimer <= 0f)
+                            {
+                                beamShotTimer = weaponStats.beamEffectInterval;
+                                float beamBaseDmg = (weaponStats.damage * dmgMult) + dmgFlat;
+                                barrel.SpawnElementalStrike(bulletSO.bulletType, enemy.transform.position, bulletSO, weaponStats.enemyMask, beamBaseDmg, isBeamTurret: true);
+                            }
+                            break;
+
+                        default:
+                            // Utility/Buff: use older beam logic
+                            float finalDamage = (weaponStats.damage * dmgMult) + dmgFlat;
+                            barrel.FireBeam(enemy, weaponStats, Time.deltaTime, finalDamage);
+                            break;
+                    }
                 }
                 else
                 {
@@ -137,40 +150,36 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                     if (beamShotTimer <= 0f)
                     {
                         beamShotTimer = weaponStats.beamShotInterval;
-                        
-                        // Calculate Augmented Damage for Sniper Shot too
-                        float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage); 
-                        float dmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
                         float finalDamage = (weaponStats.damage * dmgMult) + dmgFlat;
-
-                        // Fire a single bullet (sniper shot) with override
-                        SoundEvents.TriggerTurretShoot(this, weaponStats.weaponName, weaponStats.fireMode);
                         barrel.FireBullet(target.position, weaponStats, 1, finalDamage);
                     }
                 }
             }
-            
+            else
+            {
+                // No target or target died — fade out cone VFX
+                barrel.SetConeVFXActive(false);
+            }
+
             if (beamTimer <= 0f)
             {
-                // Duration finished, start reload
                 isBeamFiring = false;
-                
-                // Apply fire rate augment
+                barrel.SetConeVFXActive(false);
                 float fireRateMultiplier = UpgradesManager.GetStatMultiplier(AugmentType.FireRate);
-                float modifiedFireRate = weaponStats.fireRate * fireRateMultiplier;
-                fireCooldown = 1f / modifiedFireRate;
+                fireCooldown = 1f / (weaponStats.fireRate * fireRateMultiplier);
             }
         }
         else
         {
-            // Reloading (cooldown)
+            // Fading out cone VFX while reloading
+            barrel.SetConeVFXActive(false);
+            
             fireCooldown -= Time.deltaTime;
             if (fireCooldown <= 0f)
             {
-                // Start firing window
                 isBeamFiring = true;
                 beamTimer = weaponStats.beamDuration;
-                beamShotTimer = 0f; // Fire immediately on start
+                beamShotTimer = 0f;
             }
         }
     }
@@ -184,11 +193,42 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     private void HandleContinuousPulse()
     {
         pulseTickTimer -= Time.deltaTime;
+
+        var bulletSO = barrel.CurrentBulletSO;
+        if (bulletSO == null) return;
         
-        if (pulseTickTimer <= 0f)
+        switch (bulletSO.bulletType)
         {
-            pulseTickTimer = pulseTickInterval;
-            ApplyPulseAOETick();
+            case BulletType.Fire:
+                // Continuous cone spray every tick
+                float pulseRange = parentNode != null ? parentNode.GetEffectiveRange() : weaponStats.coneRange;
+                barrel.FireConeArea(weaponStats, bulletSO, Time.deltaTime, weaponStats.enemyMask, pulseRange);
+                break;
+            
+            case BulletType.Ice:
+            case BulletType.Electric:
+                // Strike at target position on a timer
+                if (pulseTickTimer <= 0f)
+                {
+                    pulseTickTimer = pulseTickInterval;
+                    if (target != null)
+                    {
+                        float pulseDmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage);
+                        float pulseDmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
+                        float pulseBaseDmg = (weaponStats.damage * pulseDmgMult) + pulseDmgFlat;
+                        barrel.SpawnElementalStrike(bulletSO.bulletType, target.position, bulletSO, weaponStats.enemyMask, pulseBaseDmg, isBeamTurret: false);
+                    }
+                }
+                break;
+
+            default:
+                // Default pulse AOE (non-elemental)
+                if (pulseTickTimer <= 0f)
+                {
+                    pulseTickTimer = pulseTickInterval;
+                    ApplyPulseAOETick();
+                }
+                break;
         }
     }
 
@@ -273,8 +313,6 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     {
         if (target == null) return;
 
-        SoundEvents.TriggerTurretShoot(this, weaponStats.weaponName, weaponStats.fireMode);
-
         // Calculate Final Damage with Augments
         float dmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage); 
         
@@ -350,25 +388,22 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        // 1. Install Bullet Logic
+        // 1. Install Bullet Logic (Attach anything that can be attached)
         if (buildManager.HasBulletSelection)
         {
-             // Check if player can afford the bullet
-             // Logic is in BuildManager.TryInstallBullet actually.
-             // But here we call it.
+             // TryInstallBullet checks validity and installs if affordable
              buildManager.TryInstallBullet(this);
-             return;
+             return; // Stop here, do not open upgrade UI or clear turret hand
         }
 
-        // 2. Build Turret Logic (handled by Node, but if we click a turret logic shouldn't trigger node build)
+        // 2. Clear Turret Selection so we can fluidly select the Turret to open Upgrade UI
         if (buildManager.HasTurretSelection)
         {
-            // Do nothing, let raycast hit Node? 
-            // Actually Turret collider blocks Node.
-            return;
+            buildManager.ClearTurretSelection();
         }
 
-        // 3. Upgrade UI Logic (Empty Hand)
+        // 3. Upgrade UI Logic (Empty Hand or freshly cleared Turret Hand)
+        SoundEvents.TriggerButtonClicked(this);
         ToggleUpgradeUI();
     }
     
@@ -424,6 +459,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     {
         int refund = GetSellValue();
         PlayerStats.wallet += refund;
+        SoundEvents.TriggerTurretSold(this, transform.position);
         
         // Close UI if open
         if (TurretUpgradeUI.Instance != null) TurretUpgradeUI.Instance.Close();
@@ -554,7 +590,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
             barrel.SetBulletType(projectile, properties);
             parentNode.SetBarrelActive(true);
-            SoundEvents.TriggerTurretBuilt(this);
+            SoundEvents.TriggerTurretBuilt(this, transform.position);
             Debug.Log($"Installed bullet: {properties?.bulletType ?? BulletType.Normal}");
         }
         else

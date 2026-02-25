@@ -90,7 +90,7 @@ public class TurretUpgradeUI : MonoBehaviour
         Instance = this;
         if (uiPanel != null) uiPanel.SetActive(false);
 
-        if (closeButton != null) closeButton.onClick.AddListener(() => { SoundEvents.TriggerButtonClicked(this); Close(); });
+        if (closeButton != null) closeButton.onClick.AddListener(() => { SoundEvents.TriggerCancelButtonClicked(this); Close(); });
         // Backdrop listener removed
         if (sellButton != null) sellButton.onClick.AddListener(() => { SoundEvents.TriggerButtonClicked(this); OnSellClicked(); });
 
@@ -282,19 +282,32 @@ public class TurretUpgradeUI : MonoBehaviour
 
     public void SetTarget(TurretBaseModule turret)
     {
+        // Disable old range visual if switching targets
+        if (targetModule != null)
+        {
+            Turret oldTurret = targetModule.GetComponentInParent<Turret>();
+            if (oldTurret != null) oldTurret.SetRangeVisual(false);
+        }
+
         targetModule = turret;
         CalculateSmartOffset();
+        // Tell PlacementSystem to position the selection ring
+        if (PlacementSystem.Instance != null)
+        {
+            PlacementSystem.Instance.PositionSelectionRing(targetModule);
+        }
         uiPanel.SetActive(true);
         
         // Auto-Focus Camera on Open
         var cam = FindFirstObjectByType<CameraController>();
         if (cam != null) cam.FocusOn(turret.transform.position);
 
-        // Update Targeting UI
+        // Update Targeting & Range UI
         Turret t = turret.GetComponentInParent<Turret>();
         if (t != null)
         {
              RefreshTargetingUI(t);
+             t.SetRangeVisual(true);
              if (targetingButton != null) targetingButton.gameObject.SetActive(true);
         }
         else
@@ -349,7 +362,20 @@ public class TurretUpgradeUI : MonoBehaviour
     public void Close()
     {
         uiPanel.SetActive(false);
+        if (targetModule != null)
+        {
+            Turret t = targetModule.GetComponentInParent<Turret>();
+            if (t != null) t.SetRangeVisual(false);
+        }
         targetModule = null;
+        
+        if (PlacementSystem.Instance != null)
+        {
+            PlacementSystem.Instance.HideSelectionRing();
+        }
+        
+        // NOTE: Do NOT clear turret selection here - player may have just
+        // closed this panel via Shop.SelectTurret and needs the selection to place on a Node.
     }
 
 
@@ -363,9 +389,9 @@ public class TurretUpgradeUI : MonoBehaviour
         if (levelText != null) levelText.text = $"Lv. {targetModule.currentLevel}"; 
         if (descriptionText != null) descriptionText.text = targetModule.description;
         
-        // Sell Button
+        // Sell Button 
         int sellValue = targetModule.GetSellValue();
-        if (sellButtonText != null) sellButtonText.text = $"Sell (+${sellValue})";
+        if (sellButtonText != null) sellButtonText.text = $"(+${sellValue})";
 
         // === UPGRADE TAB & STATS TAB POPULATION ===
         TurretPropertiesSO stats = targetModule.GetTurretProperties();
@@ -448,6 +474,11 @@ public class TurretUpgradeUI : MonoBehaviour
         
         targetModule.UpgradeStat(type);
         RefreshUI(); // Update values and buttons
+
+        // Immediately update the range ring so it reflects the new range without re-opening the UI
+        Turret t = targetModule.GetComponentInParent<Turret>();
+        if (t != null) t.UpdateRangeVisuals();
+
         GameUIEvent.MoneyChanged(BuildManager.instance, PlayerStats.wallet); 
     }
 

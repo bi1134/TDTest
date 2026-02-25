@@ -227,6 +227,28 @@ namespace TerrainGenerator
             
             // 8. Spawn Objects (New)
             SpawnObjectsFromBlueprints();
+            
+            // 9. Focus Camera on Map Center
+            CenterCameraOnMap();
+        }
+        
+        private void CenterCameraOnMap()
+        {
+            CameraController cameraController = FindFirstObjectByType<CameraController>();
+            if (cameraController != null && unityGrid != null)
+            {
+                // Calculate the true center by adding half the total grid dimensions.
+                // The visual object is anchored/offset by cellAlignment, so we also add that small sub-cell offset.
+                float totalWidth = gridSize.x * unityGrid.cellSize.x;
+                float totalDepth = gridSize.z * unityGrid.cellSize.z;
+
+                float centerX = (totalWidth / 2f) + (unityGrid.cellSize.x * cellAlignment.x);
+                float centerZ = (totalDepth / 2f) + (unityGrid.cellSize.z * cellAlignment.z);
+
+                Vector3 trueCenter = transform.position + new Vector3(centerX, 0f, centerZ);
+
+                cameraController.FocusOnChunk(trueCenter);
+            }
         }
         
         private List<GameObject> spawnedObjects = new List<GameObject>();

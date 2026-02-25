@@ -46,6 +46,10 @@ public class Enemy : MonoBehaviour
     [Header("Visuals")]
     [Tooltip("If true, hits on unshielded enemy play Blood. If false, they play DefaultHit sparks.")]
     public bool isFleshy = true;
+    [Tooltip("Optional: The shield mesh/visual to hide when shield HP reaches 0")]
+    [SerializeField] private GameObject shieldVisual;
+    [Tooltip("Optional: The barrier/directional shield mesh to hide when barrier HP reaches 0")]
+    [SerializeField] private GameObject barrierVisual;
 
     [Header("Active Debuffs (Runtime)")]
     [SerializeField] private float slowMultiplier = 1f;
@@ -56,6 +60,18 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float stunRemainingTime = 0f;
     [SerializeField] private float currentBarrierHP = 0f;
     [SerializeField] private bool isSpawning = true;
+
+    [Header("Audio Overrides (Leave empty to use global defaults)")]
+    public AudioClip[] gruntSounds;
+    public AudioClip[] deathSounds;
+    public AudioClip[] poofSounds;
+
+    [Header("Movement Audio")]
+    [Tooltip("Speed at which the enemy switches from walk to sprint sound arrays")]
+    public float sprintThreshold = 4f;
+    public float walkStepInterval = 0.5f;
+    public float sprintStepInterval = 0.3f;
+    private float stepTimer = 0f;
 
     // Object Pooling
     public GameObject SourcePrefab { get; set; }
@@ -113,6 +129,10 @@ public class Enemy : MonoBehaviour
         currentBarrierHP = maxBarrierHP;
         currentShieldHP = maxShieldHP;
 
+        // Re-show the shield visual
+        if (shieldVisual != null) shieldVisual.SetActive(maxShieldHP > 0);
+        // Re-show the barrier visual
+        if (barrierVisual != null) barrierVisual.SetActive(maxBarrierHP > 0);
         // Clear Debuffs
         slowMultiplier = 1f;
         vulnerabilityMultiplier = 1f;
@@ -240,7 +260,7 @@ public class Enemy : MonoBehaviour
             currentSpeed = 0; // Precaution
             
         Debug.Log($"{gameObject.name} has died!");
-        SoundEvents.TriggerEnemyDeath(this);
+        SoundEvents.TriggerEnemyDeath(this, transform.position, deathSounds);
         
         // Initial blood splatter (or metal spark) on death
         if (isFleshy)
@@ -258,7 +278,14 @@ public class Enemy : MonoBehaviour
         // Roll for Stat Shard Drop
         if (statShardPrefab != null && UnityEngine.Random.value <= statShardDropChance)
         {
-            Instantiate(statShardPrefab, transform.position, Quaternion.identity);
+            if (StatShardPoolManager.Instance != null)
+            {
+                StatShardPoolManager.Instance.SpawnShard(statShardPrefab, transform.position, Quaternion.identity);
+            }
+            else
+            {
+                Instantiate(statShardPrefab, transform.position, Quaternion.identity);
+            }
         }
 
         // Assuming PlayerStats and WaveManager are accessible
@@ -269,6 +296,7 @@ public class Enemy : MonoBehaviour
 
         // Add Money Reward
         PlayerStats.wallet += moneyReward;
+        SoundEvents.TriggerCoinCollected(this);
         Debug.Log($"Rewarded {moneyReward} money. New Balance: {PlayerStats.wallet}");
 
         // Trigger animation event and delay destroy
@@ -298,6 +326,7 @@ public class Enemy : MonoBehaviour
     
     private void SpawnDeathPoof()
     {
+        SoundEvents.TriggerEnemyPoof(this, transform.position, poofSounds);
         VFXManager.Instance?.PlayEffect(VFXType.DeathPoof, transform.position);
     }
 
@@ -311,6 +340,33 @@ public class Enemy : MonoBehaviour
         else
         {
             currentSpeed = baseSpeed * slowMultiplier;
+        }
+        UpdateMovementAudio();
+    }
+
+    private void UpdateMovementAudio()
+    {
+        if (currentSpeed > 0 && IsAlive && !isSpawning)
+        {
+            stepTimer -= Time.deltaTime;
+            if (stepTimer <= 0f)
+            {
+                if (currentSpeed >= sprintThreshold)
+                {
+                    SoundEvents.TriggerEnemySprint(this, transform.position);
+                    stepTimer = sprintStepInterval / (currentSpeed / baseSpeed); // Adjust interval by speed
+                }
+                else
+                {
+                    SoundEvents.TriggerEnemyWalk(this, transform.position);
+                    stepTimer = walkStepInterval / (currentSpeed / baseSpeed); // Adjust interval by speed
+                }
+            }
+        }
+        else
+        {
+            // Reset timer when stopped so they step immediately upon moving again
+            stepTimer = 0f;
         }
     }
 
@@ -360,20 +416,29 @@ public class Enemy : MonoBehaviour
             Vector3 dirToSource = (hitSourcePos - transform.position).normalized;
             if (Vector3.Dot(transform.forward, dirToSource) > 0.5f)
             {
-                // Attack hit the barrier!
-                // Barrier mitigates damage for the health pool
-                float mitigatedDamage = remainingDamage * barrierReduction;
-                remainingDamage -= mitigatedDamage;
-                
-                // But the Barrier itself takes the brute force of the attack
+                // Barrier hit spark
+                VFXManager.Instance?.PlayEffect(VFXType.ShieldSpark, transform.position, dirToSource);
+
+                // Barrier itself takes the brute force of the attack
                 if (damage >= currentBarrierHP)
                 {
                     currentBarrierHP = 0; // Barrier breaks!
-                    VFXManager.Instance?.PlayEffect(VFXType.ShieldSpark, transform.position, dirToSource);
+                    float mitigatedDamage = remainingDamage * barrierReduction;
+                    remainingDamage -= mitigatedDamage;
+
+                    // --- Barrier Broke! ---
+                    Vector3 barrierPos = barrierVisual != null ? barrierVisual.transform.position : transform.position;
+                    VFXManager.Instance?.PlayEffect(VFXType.ShieldBreak, barrierPos);
+                    VFXManager.Instance?.PlayEffect(VFXType.ItemDisappear, barrierPos);
+                    SoundEvents.TriggerBarrierBreak(this, barrierPos);
+                    if (barrierVisual != null) barrierVisual.SetActive(false);
                 }
                 else
                 {
                     currentBarrierHP -= damage;
+                    // Damage is still mitigated for the body
+                    float mitigatedDamage = remainingDamage * barrierReduction;
+                    remainingDamage -= mitigatedDamage;
                 }
             }
         }
@@ -381,19 +446,23 @@ public class Enemy : MonoBehaviour
         // 2. Shield HP absorbs remaining damage
         if (currentShieldHP > 0 && !bypassShield)
         {
-            SoundEvents.TriggerEnemyHit(this, true); // Shield Hit
+            SoundEvents.TriggerEnemyHit(this, transform.position, true); // Shield Hit
             
             // Spawn Spark if hit source is known
-            if (hitSourcePos != default)
-            {
-                Vector3 dirToSource = (hitSourcePos - transform.position).normalized;
-                VFXManager.Instance?.PlayEffect(VFXType.ShieldSpark, transform.position, dirToSource);
-            }
+            Vector3 dirToSource = hitSourcePos != default ? (hitSourcePos - transform.position).normalized : Vector3.zero;
+            VFXManager.Instance?.PlayEffect(VFXType.ShieldSpark, transform.position, dirToSource);
 
             if (remainingDamage >= currentShieldHP)
             {
                 remainingDamage -= currentShieldHP;
                 currentShieldHP = 0;
+
+                // --- Shield Broke! ---
+                Vector3 shieldPos = shieldVisual != null ? shieldVisual.transform.position : transform.position;
+                VFXManager.Instance?.PlayEffect(VFXType.ShieldBreak, shieldPos);
+                VFXManager.Instance?.PlayEffect(VFXType.ItemDisappear, shieldPos);
+                SoundEvents.TriggerShieldBreak(this, shieldPos);
+                if (shieldVisual != null) shieldVisual.SetActive(false);
             }
             else
             {
@@ -403,7 +472,7 @@ public class Enemy : MonoBehaviour
         }
         else if (remainingDamage > 0)
         {
-            SoundEvents.TriggerEnemyHit(this, false); // Flesh Hit
+            SoundEvents.TriggerEnemyHit(this, transform.position, false); // Flesh Hit
             
             // Spawn Default Spark on normal hits (Blood is reserved for Death)
             if (hitSourcePos != default && !bypassShield)

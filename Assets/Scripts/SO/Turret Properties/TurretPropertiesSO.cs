@@ -1,7 +1,7 @@
 using UnityEngine;
 
 public enum FireMode { Single, MultiShot, Burst, Pulse, Arc, Beam }
-public enum WeaponName { Pistol, Rifle, Shotgun, Sniper, Sword, BowAndArrow, Staff }
+public enum WeaponName { Cannon, Crossbow, MachineGun, Magic }
 
 [CreateAssetMenu(fileName = "TurretProperities", menuName = "Scriptable Objects/TurretProperities")]
 public class TurretPropertiesSO : ScriptableObject
@@ -50,4 +50,10 @@ public class TurretPropertiesSO : ScriptableObject
     public float beamShotInterval = 1.75f;
     [Tooltip("Time between effect applications (stun, slow, chain) during beam")]
     public float beamEffectInterval = 0.5f;
+
+    [Header("Elemental Cone (Fire) Settings")]
+    [Tooltip("Half-angle of the Fire cone in degrees. 45 = 90 degree wide fan.")]
+    public float coneAngle = 45f;
+    [Tooltip("Range of the Fire cone in world units. 0 = use parent Turret's range.")]
+    public float coneRange = 8f;
 }

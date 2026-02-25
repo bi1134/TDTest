@@ -13,7 +13,6 @@ MonoBehaviour:
   m_Name: Damage Shard
   m_EditorClassIdentifier: Assembly-CSharp::StatShardSO
   shardName: Damage Shard
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 32700198561e47044863cf80370fe63a, type: 3}
   statType: 0
-  rarity: 0
   isPercentage: 1

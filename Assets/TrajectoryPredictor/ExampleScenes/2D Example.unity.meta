@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 59e6ee580963eb345b20d145e6ca1bee
+timeCreated: 1455015979
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 55752
+  packageName: Trajectory Predictor
+  packageVersion: 1.3
+  assetPath: Assets/TrajectoryPredictor/ExampleScenes/2D Example.unity
+  uploadId: 285243

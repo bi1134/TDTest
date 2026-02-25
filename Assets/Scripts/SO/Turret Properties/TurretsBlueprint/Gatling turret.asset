@@ -15,6 +15,6 @@ MonoBehaviour:
   turretName: Gatling Turret
   prefab: {fileID: 8195699246678471509, guid: 5becff99af66c314a96455b6f4f96e3a, type: 3}
   cost: 225
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 2a069a0bcc59d62409152bacc43992bd, type: 3}
   defaultBullet: {fileID: 11400000, guid: 024da10928c6dfd4889a8c3ff7f65c05, type: 2}
   description: dealing damage with fast shooting speed

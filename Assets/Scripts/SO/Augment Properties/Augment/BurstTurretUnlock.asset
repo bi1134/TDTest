@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82724983c787539479b78445fcd06984, type: 3}
+  m_Name: BurstTurretUnlock
+  m_EditorClassIdentifier: Assembly-CSharp::AugmentSO
+  augmentName: Burst Turret
+  description: A turret that burst 3 bullets at a time
+  icon: {fileID: 0}
+  rarity: 2
+  isRepeatable: 0
+  specialEffect: 
+  unlocksItem: 1
+  unlockedTurret: {fileID: 11400000, guid: dc5f20a24916ffd498571fbe979386c6, type: 2}
+  unlockedBullet: {fileID: 0}
+  addToShop: 1

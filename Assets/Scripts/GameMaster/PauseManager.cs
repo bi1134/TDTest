@@ -7,15 +7,17 @@ using UnityEngine;
 public class PauseManager : MonoBehaviour
 {
     public bool IsPaused { get; private set; } = false;
+    public float currentTimeScale = 1f;
 
     private void Start()
     {
         // Subscribe to pause event
         GameEvents.OnPauseAction += HandlePauseAction;
         
-        // Ensure game starts unpaused
+        // Ensure game starts unpaused and at normal speed
         IsPaused = false;
-        Time.timeScale = 1f;
+        currentTimeScale = 1f;
+        Time.timeScale = currentTimeScale;
     }
 
     private void OnDestroy()
@@ -42,6 +44,16 @@ public class PauseManager : MonoBehaviour
         }
     }
 
+    public void ToggleTimeScale()
+    {
+        currentTimeScale = (currentTimeScale == 1f) ? 2f : 1f;
+        if (!IsPaused)
+        {
+            Time.timeScale = currentTimeScale;
+        }
+        Debug.Log($"[PauseManager] Time scale toggled to {currentTimeScale}x");
+    }
+
     public void Pause()
     {
         IsPaused = true;
@@ -55,8 +67,8 @@ public class PauseManager : MonoBehaviour
     public void Resume()
     {
         IsPaused = false;
-        Time.timeScale = 1f;
-        Debug.Log("[PauseManager] Game Resumed");
+        Time.timeScale = currentTimeScale;
+        Debug.Log($"[PauseManager] Game Resumed at {currentTimeScale}x speed");
         
         // Trigger event for UI to hide pause menu
         GameEvents.TriggerPauseStateChanged(this, false);

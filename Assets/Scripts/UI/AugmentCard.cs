@@ -18,6 +18,7 @@ public class AugmentCard : MonoBehaviour
 
     [Header("Rarity Colors (Optional)")]
     [SerializeField] private Color commonColor = Color.grey;
+    [SerializeField] private Color uncommonColor = Color.green;
     [SerializeField] private Color rareColor = Color.blue;
     [SerializeField] private Color epicColor = new Color(0.6f, 0f, 0.8f); // Purple
     [SerializeField] private Color legendaryColor = new Color(1f, 0.8f, 0f); // Gold
@@ -116,6 +117,7 @@ public class AugmentCard : MonoBehaviour
         return rarity switch
         {
             AugmentRarity.Common => commonColor,
+            AugmentRarity.Uncommon => uncommonColor,
             AugmentRarity.Rare => rareColor,
             AugmentRarity.Epic => epicColor,
             AugmentRarity.Legendary => legendaryColor,

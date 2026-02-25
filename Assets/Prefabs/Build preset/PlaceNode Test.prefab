@@ -154,7 +154,7 @@ MonoBehaviour:
   variants:
   - variantName: 
     prefab: {fileID: 8249431693948026329, guid: 885cbf8a650c68245a0a334264eae57a, type: 3}
-    spawnWeight: 0
+    spawnWeight: 100
     limitHeight: 0
     minHeight: 0
     maxHeight: 0
@@ -178,8 +178,179 @@ MonoBehaviour:
       requiredSocketID: 0
       mustNotMatch: 0
   - variantName: 
-    prefab: {fileID: 6782390953603596957}
-    spawnWeight: 0
+    prefab: {fileID: 3179049732037619869, guid: fc49cfcfb874a5246b6993c26aa93144, type: 3}
+    spawnWeight: 1
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 5273306113994557564, guid: 5fd2a6f20925a844b912a58ea40de9b7, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 2654542983153788208, guid: acdbeeeab50a10a47a74bca1eb5dec4c, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 6782390953603596957, guid: 6f45b0f667def8f4e9202eead6cbd398, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 2918730059168187701, guid: 602a07c1446e73e4da4d14f9947c8a28, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 3179049732037619869, guid: 42ce2f0bb911db4449a7d1f05a0e60b3, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 2918730059168187701, guid: 2fad03312f221bb49a96ecb0f3c7f98c, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 6782390953603596957, guid: f09a00f04f5b88842a7a7ae66ec6057c, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 2654542983153788208, guid: 386ca25d7ee0b494eb22de70e0529d18, type: 3}
+    spawnWeight: 0.3
+    limitHeight: 0
+    minHeight: 0
+    maxHeight: 0
+    rules:
+    - direction: {x: 1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: -1, y: 0, z: 0}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: 1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+    - direction: {x: 0, y: 0, z: -1}
+      requiredSocketID: 0
+      mustNotMatch: 1
+  - variantName: 
+    prefab: {fileID: 5273306113994557564, guid: a7881be02530cfb4799203ae57fec76f, type: 3}
+    spawnWeight: 0.3
     limitHeight: 0
     minHeight: 0
     maxHeight: 0

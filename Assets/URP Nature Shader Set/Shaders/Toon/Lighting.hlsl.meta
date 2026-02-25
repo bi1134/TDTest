@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: 47f1dda3fc94f7140b1f596bd189d895
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241305
+  packageName: URP Nature Shader Set
+  packageVersion: 1.0
+  assetPath: Assets/URP Nature Shader Set/Shaders/Toon/Lighting.hlsl
+  uploadId: 548835

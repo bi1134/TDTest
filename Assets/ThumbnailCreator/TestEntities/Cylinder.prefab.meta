@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 9aedb3be0fd775f4d8d5c980beddf527
+timeCreated: 1476482088
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 73831
+  packageName: ThumbnailCreator
+  packageVersion: 1.0
+  assetPath: Assets/ThumbnailCreator/TestEntities/Cylinder.prefab
+  uploadId: 141816

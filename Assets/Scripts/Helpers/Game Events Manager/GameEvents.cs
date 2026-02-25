@@ -41,6 +41,13 @@ public static class GameEvents
     {
         public UpgradesManager.ActiveStatShard selectedShard;
     }
+    
+    // Unlocks
+    public static event EventHandler<TurretBlueprintSO> OnTurretUnlocked;
+    public static event EventHandler<BulletBlueprintSO> OnBulletUnlocked;
+    
+    public static void TriggerTurretUnlocked(object sender, TurretBlueprintSO turret) => OnTurretUnlocked?.Invoke(sender, turret);
+    public static void TriggerBulletUnlocked(object sender, BulletBlueprintSO bullet) => OnBulletUnlocked?.Invoke(sender, bullet);
 
     // Map & Path
     public static event EventHandler OnMapExpansionStarted;

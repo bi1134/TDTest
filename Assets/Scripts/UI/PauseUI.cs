@@ -15,6 +15,8 @@ public class PauseUI : MonoBehaviour
     [SerializeField] private Button quitButton; // Optional
     [SerializeField] private TMPro.TMP_Text seedText; // New Seed Text
     [SerializeField] private Button copySeedButton; // New Copy Seed Button
+    [SerializeField] private Button speedButton; // New 2x Speed Button
+    [SerializeField] private TMPro.TMP_Text speedButtonText; // To show 1x or 2x
 
     [Header("Manager Reference")]
     [SerializeField] private PauseManager pauseManager; // Reference to pause manager
@@ -32,6 +34,7 @@ public class PauseUI : MonoBehaviour
         {
             resumeButton.onClick.AddListener(() =>
             {
+                SoundEvents.TriggerButtonClicked(this);
                 if (pauseManager != null)
                 {
                     pauseManager.Resume();
@@ -43,6 +46,7 @@ public class PauseUI : MonoBehaviour
         {
             restartButton.onClick.AddListener(() =>
             {
+                SoundEvents.TriggerButtonClicked(this);
                 if (pauseManager != null)
                 {
                     pauseManager.Resume(); // Unpause first to avoid timeScale issues
@@ -56,6 +60,7 @@ public class PauseUI : MonoBehaviour
         {
             copySeedButton.onClick.AddListener(() =>
             {
+                SoundEvents.TriggerButtonClicked(this);
                 if (seedText != null)
                 {
                     GUIUtility.systemCopyBuffer = seedText.text.Replace("Seed: ", "");
@@ -68,6 +73,7 @@ public class PauseUI : MonoBehaviour
         {
             quitButton.onClick.AddListener(() =>
             {
+                SoundEvents.TriggerCancelButtonClicked(this);
                 if (pauseManager != null)
                 {
                     pauseManager.Resume(); // Unpause first
@@ -75,6 +81,22 @@ public class PauseUI : MonoBehaviour
 
                 // Load main menu scene
                 Loader.Load(Loader.Scene.MainMenuScene);
+            });
+        }
+        
+        if (speedButton != null)
+        {
+            speedButton.onClick.AddListener(() => 
+            {
+                SoundEvents.TriggerButtonClicked(this);
+                if (pauseManager != null)
+                {
+                    pauseManager.ToggleTimeScale();
+                    if (speedButtonText != null)
+                    {
+                        speedButtonText.text = pauseManager.currentTimeScale == 1f ? "1x" : "2x";
+                    }
+                }
             });
         }
         

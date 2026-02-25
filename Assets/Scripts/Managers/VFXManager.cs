@@ -115,12 +115,17 @@ public class VFXManager : MonoBehaviour
     {
         return type switch
         {
-            VFXType.Blood => vfxReferences.bloodSplatters,
-            VFXType.ShieldSpark => vfxReferences.shieldSparks,
-            VFXType.GroundDust => vfxReferences.groundDust,
-            VFXType.GenericExplosion => vfxReferences.genericExplosions,
-            VFXType.DefaultHit => vfxReferences.defaultHits,
-            VFXType.DeathPoof => vfxReferences.deathPoofs,
+            VFXType.Blood           => vfxReferences.bloodSplatters,
+            VFXType.ShieldSpark     => vfxReferences.shieldSparks,
+            VFXType.ShieldBreak     => vfxReferences.shieldBreaks,
+            VFXType.GroundDust      => vfxReferences.groundDust,
+            VFXType.GenericExplosion=> vfxReferences.genericExplosions,
+            VFXType.DefaultHit      => vfxReferences.defaultHits,
+            VFXType.DeathPoof       => vfxReferences.deathPoofs,
+            VFXType.ItemDisappear   => vfxReferences.itemDisappear,
+            VFXType.ElectricStrike  => vfxReferences.electricStrike,
+            VFXType.IceStrike       => vfxReferences.iceStrike,
+            VFXType.ChunkExpand     => vfxReferences.chunkExpand,
             _ => null
         };
     }

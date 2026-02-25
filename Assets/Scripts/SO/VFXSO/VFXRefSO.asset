@@ -16,6 +16,8 @@ MonoBehaviour:
   - {fileID: 2892900330912241561, guid: 9ab91f806524f4e469d8c15f0ed2d51f, type: 3}
   shieldSparks:
   - {fileID: 2766703428320182966, guid: 5b80e8e03ca348b458a56425560e1117, type: 3}
+  shieldBreaks:
+  - {fileID: 6813416509558619124, guid: f4c8e0f8cc91aab4384dddcc829f8c19, type: 3}
   defaultHits:
   - {fileID: 1266536748711207254, guid: d83b32b179c620c4a9440d20d9cb856c, type: 3}
   deathPoofs:
@@ -23,3 +25,11 @@ MonoBehaviour:
   groundDust:
   - {fileID: 5756194687774722580, guid: 1313800c888e4e14588845568a5905d9, type: 3}
   genericExplosions: []
+  itemDisappear:
+  - {fileID: 6813416509558619124, guid: f4c8e0f8cc91aab4384dddcc829f8c19, type: 3}
+  electricStrike:
+  - {fileID: 2190099639366393120, guid: c447eb968e2ef454a97344310adfa301, type: 3}
+  iceStrike:
+  - {fileID: 6358602315212755161, guid: c8a6191dbce2ba6459ca5386c0927b3e, type: 3}
+  chunkExpand:
+  - {fileID: 6813416509558619124, guid: 3b7f2c753d435d647a80f1f047a113e3, type: 3}

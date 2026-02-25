@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 8703a970e042bc7409fc97fb797cffa3
+timeCreated: 1476481761
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 73831
+  packageName: ThumbnailCreator
+  packageVersion: 1.0
+  assetPath: Assets/ThumbnailCreator/TestEntities/Cube.prefab
+  uploadId: 141816

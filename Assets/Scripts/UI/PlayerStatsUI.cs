@@ -68,6 +68,9 @@ public class PlayerStatsUI : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Button pauseButton;
     [SerializeField] private PauseManager pauseManager;
 
+    [Header("Speed Toggle")]
+    [SerializeField] private UnityEngine.UI.Toggle speedToggle;
+
     private void Awake()
     {
         if (pauseButton != null)
@@ -85,6 +88,22 @@ public class PlayerStatsUI : MonoBehaviour
                     var pm = FindAnyObjectByType<PauseManager>();
                     if (pm != null) pm.Pause();
                 }
+            });
+        }
+
+        // Speed Toggle
+        if (speedToggle != null)
+        {
+            speedToggle.onValueChanged.AddListener((isOn) =>
+            {
+                SoundEvents.TriggerButtonClicked(this);
+                var pm = pauseManager != null ? pauseManager : FindAnyObjectByType<PauseManager>();
+                if (pm == null) return;
+
+                // Force the time scale to match the toggle state, rather than calling ToggleTimeScale
+                // (avoids the toggle fighting with ToggleTimeScale which flips regardless of direction)
+                pm.currentTimeScale = isOn ? 2f : 1f;
+                if (!pm.IsPaused) Time.timeScale = pm.currentTimeScale;
             });
         }
     }

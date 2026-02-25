@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c4cc2f075321880449af9da28a498686
+timeCreated: 1455016694
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 55752
+  packageName: Trajectory Predictor
+  packageVersion: 1.3
+  assetPath: Assets/TrajectoryPredictor/ExampleScenes/Prefabs/Ball2D.prefab
+  uploadId: 285243

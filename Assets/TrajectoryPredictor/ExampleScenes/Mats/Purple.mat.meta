@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 6a368563aada80e4cbaaacc8625829bf
+timeCreated: 1455024940
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 55752
+  packageName: Trajectory Predictor
+  packageVersion: 1.3
+  assetPath: Assets/TrajectoryPredictor/ExampleScenes/Mats/Purple.mat
+  uploadId: 285243

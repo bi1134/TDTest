@@ -371,7 +371,7 @@ public class BulletProjectile : MonoBehaviour
             else
             {
                 // Non-explosive: apply direct damage
-                SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, true); // Hit Enemy
+                SoundEvents.TriggerBulletImpact(this, transform.position, activeSettings.bulletType, true); // Hit Enemy
                 if (collision.gameObject.TryGetComponent(out Enemy enemy))
                 {
                     Vector3 attackDir = rb.linearVelocity.normalized;
@@ -399,7 +399,7 @@ public class BulletProjectile : MonoBehaviour
         // Arc projectiles spawn ground zone on ground impact immediately
         if (isArcProjectile && isGroundHit)
         {
-            SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, false); // Hit Ground
+            SoundEvents.TriggerBulletImpact(this, transform.position, activeSettings.bulletType, false); // Hit Ground
             VFXManager.Instance?.PlayEffect(VFXType.GroundDust, hitPoint, hitNormal);
             SpawnGroundZone(hitPoint);
             return;
@@ -429,7 +429,7 @@ public class BulletProjectile : MonoBehaviour
             }
             else
             {
-                SoundEvents.TriggerBulletImpact(this, activeSettings.bulletType, false); // Generic hit wall/object
+                SoundEvents.TriggerBulletImpact(this, transform.position, activeSettings.bulletType, false); // Generic hit wall/object
                 VFXManager.Instance?.PlayEffect(VFXType.GroundDust, hitPoint, hitNormal);
                 Deactivate();
             }
@@ -471,7 +471,7 @@ public class BulletProjectile : MonoBehaviour
     {
         var activeSettings = settings ?? defaultSettings;
         
-        SoundEvents.TriggerAOEExplosion(this);
+        SoundEvents.TriggerAOEExplosion(this, transform.position);
         VFXManager.Instance?.PlayEffect(VFXType.GenericExplosion, center);
 
         // Use BulletPropertiesSO explosive radius if bullet type is Explosive
@@ -562,7 +562,7 @@ public class BulletProjectile : MonoBehaviour
     /// </summary>
     private void DoArcExplosion(Vector3 hitPoint, BulletPropertiesSO bulletSO)
     {
-        SoundEvents.TriggerAOEExplosion(this);
+        SoundEvents.TriggerAOEExplosion(this, transform.position);
         
         float radius = bulletSO.explosiveRadius;
         if (radius <= 0f) radius = bulletSO.arcZoneRadius; // Fallback to arc zone radius

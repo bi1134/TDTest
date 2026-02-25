@@ -15,5 +15,5 @@ MonoBehaviour:
   bulletName: Normal Bullet
   bulletProperties: {fileID: 11400000, guid: e87a95e6808d48943ab3e99dcc196195, type: 2}
   cost: 50
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a9573a8ffe3307e4b9c8360641f39c59, type: 3}
   description: flat damage

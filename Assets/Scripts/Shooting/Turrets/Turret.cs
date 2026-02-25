@@ -424,18 +424,226 @@ public class Turret : MonoBehaviour
         }
     }
 
-    public float GetEffectiveRange()
+    [Header("Range Visual")]
+    [Tooltip("Material for the range ring and trajectory arc. If null, uses Sprites/Default fallback.")]
+    public Material rangeLineMaterial;
+    [Tooltip("Where the trajectory arc line starts. Assign any child Transform on the turret (e.g. barrel tip). If empty, falls back to the barrel module's fire point.")]
+    public Transform trajectoryOriginOverride;
+
+    private LineRenderer rangeLineRenderer;
+    private GameObject rangeVisualObject;
+    private LineRenderer trajectoryLineRenderer;
+    private GameObject trajectoryVisualObject;
+    private bool visualsActive = false;
+
+    public void SetRangeVisual(bool isActive)
     {
-        float mult = UpgradesManager.GetStatMultiplier(AugmentType.Range);
-        return range * mult;
+        visualsActive = isActive;
+
+        // Auto-resolve baseModule if not assigned in inspector
+        if (baseModule == null)
+            baseModule = GetComponentInChildren<TurretBaseModule>();
+
+        if (isActive)
+        {
+            // --- Range Circle ---
+            if (rangeVisualObject == null)
+            {
+                rangeVisualObject = new GameObject("RangeVisualizer");
+                rangeVisualObject.transform.SetParent(this.transform);
+                rangeVisualObject.transform.localPosition = Vector3.up * 0.1f;
+                
+                rangeLineRenderer = rangeVisualObject.AddComponent<LineRenderer>();
+                rangeLineRenderer.material = rangeLineMaterial != null
+                    ? rangeLineMaterial
+                    : new Material(Shader.Find("Sprites/Default"));
+                
+                Color rangeColor = new Color(0.2f, 0.8f, 1f, 0.35f);
+                rangeLineRenderer.startColor = rangeColor;
+                rangeLineRenderer.endColor = rangeColor;
+                rangeLineRenderer.startWidth = 0.15f;
+                rangeLineRenderer.endWidth = 0.15f;
+                rangeLineRenderer.loop = true;
+                rangeLineRenderer.useWorldSpace = false;
+            }
+            rangeVisualObject.SetActive(true);
+            UpdateRangeVisuals();
+
+            // --- Trajectory Arc (Arc fire mode only) ---
+            // Re-check every time (fire mode may have changed or baseModule just resolved)
+            TurretPropertiesSO props = baseModule != null ? baseModule.GetTurretProperties() : null;
+            bool isArc = props != null && props.fireMode == FireMode.Arc;
+
+            if (trajectoryVisualObject == null)
+            {
+                trajectoryVisualObject = new GameObject("TrajectoryVisualizer");
+                trajectoryVisualObject.transform.SetParent(this.transform);
+                trajectoryVisualObject.transform.localPosition = Vector3.zero;
+
+                trajectoryLineRenderer = trajectoryVisualObject.AddComponent<LineRenderer>();
+                trajectoryLineRenderer.material = rangeLineMaterial != null
+                    ? rangeLineMaterial
+                    : new Material(Shader.Find("Sprites/Default"));
+
+                Color arcColor = new Color(1f, 0.7f, 0.1f, 0.8f);
+                trajectoryLineRenderer.startColor = arcColor;
+                trajectoryLineRenderer.endColor = new Color(1f, 0.4f, 0.1f, 0f);
+                trajectoryLineRenderer.startWidth = 0.08f;
+                trajectoryLineRenderer.endWidth = 0.02f;
+                trajectoryLineRenderer.useWorldSpace = true;
+            }
+            // Always sync visibility based on current fire mode check
+            trajectoryVisualObject.SetActive(isArc);
+        }
+        else
+        {
+            if (rangeVisualObject != null) rangeVisualObject.SetActive(false);
+            if (trajectoryVisualObject != null) trajectoryVisualObject.SetActive(false);
+        }
+    }
+
+    public void UpdateRangeVisuals()
+    {
+        if (rangeLineRenderer == null || rangeVisualObject == null || !rangeVisualObject.activeSelf) return;
+
+        int segments = 50;
+        rangeLineRenderer.positionCount = segments;
+        float currentTargetRange = GetEffectiveRange();
+        float angle = 0f;
+        for (int i = 0; i < segments; i++)
+        {
+            float x = Mathf.Sin(Mathf.Deg2Rad * angle) * currentTargetRange;
+            float z = Mathf.Cos(Mathf.Deg2Rad * angle) * currentTargetRange;
+            rangeLineRenderer.SetPosition(i, new Vector3(x, 0, z));
+            angle += (360f / segments);
+        }
+    }
+
+    private void LateUpdate()
+    {
+        if (!visualsActive || trajectoryVisualObject == null || !trajectoryVisualObject.activeSelf) return;
+        UpdateTrajectoryVisuals();
+    }
+
+    private void UpdateTrajectoryVisuals()
+    {
+        if (trajectoryLineRenderer == null || turretBarrel == null) return;
+
+        TurretPropertiesSO props = baseModule?.GetTurretProperties();
+        if (props == null || props.fireMode != FireMode.Arc) return;
+
+        // Mirror TurretBarrelModule.FireArc velocity calculation exactly so
+        // the preview arc matches the real bullet flight path.
+
+        // Use override slot first, then barrel fire point, then barrel root
+        Transform firePoint = trajectoryOriginOverride != null
+            ? trajectoryOriginOverride
+            : turretBarrel.GetPrimaryFirePoint();
+        Vector3 origin = firePoint.position;
+
+        // Use current target position or project forward at max range if no target
+        Vector3 targetPos;
+        if (target != null)
+        {
+            targetPos = target.position;
+        }
+        else
+        {
+            // No target: aim forward at range distance
+            Vector3 fwd = barrelRotationPart != null ? barrelRotationPart.forward : transform.forward;
+            fwd.y = 0;
+            fwd = fwd.normalized;
+            targetPos = origin + fwd * GetEffectiveRange();
+        }
+
+        // ── Fixed-height arc ballistic math (from FireArc) ──
+        float Vy = props.upwardForce;
+        float g  = Physics.gravity.magnitude;
+        float dy = targetPos.y - origin.y;
+
+        float a = 0.5f * g;
+        float b = -Vy;
+        float c = dy;
+        float det = b * b - 4f * a * c;
+        float T;
+        if (det < 0)
+            T = Vector3.Distance(origin, targetPos) / 20f;
+        else
+            T = (-b + Mathf.Sqrt(det)) / (2f * a);
+        if (T <= 0.01f) T = 0.1f;
+
+        Vector3 d = targetPos - origin;
+        d.y = 0;
+        float dist = d.magnitude;
+        float Vx = dist / T;
+        Vector3 v0 = d.normalized * Vx + Vector3.up * Vy;
+
+        // Feed the matched velocity into TrajectoryPredictor
+        Vector3[] points = TrajectoryPredictor.GetPoints3D(origin, v0, Physics.gravity, 0f, 0.92f, 300);
+        if (points == null || points.Length < 2) return;
+
+        trajectoryLineRenderer.positionCount = points.Length;
+        trajectoryLineRenderer.SetPositions(points);
     }
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = Color.red;
         // Use effective range for visual debugging if playing, else base range
         float r = Application.isPlaying ? GetEffectiveRange() : range;
+
+        // Default range sphere
+        Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, r);
+
+        // Draw cone fan for Fire element turrets
+        TurretPropertiesSO props = baseModule != null ? baseModule.GetTurretProperties() : null;
+        if (props == null) return;
+
+        // Only draw cone if it's a Beam or Pulse mode turret
+        if (props.fireMode != FireMode.Beam && props.fireMode != FireMode.Pulse) return;
+
+        // Check if Fire bullet is installed
+        bool isFire = turretBarrel != null
+            && turretBarrel.CurrentBulletSO != null
+            && turretBarrel.CurrentBulletSO.bulletType == BulletType.Fire;
+        if (!isFire) return;
+
+        // Draw the cone fan lines in yellow
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.6f);
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
+        Vector3 forward = transform.forward;
+        float halfAngle = props.coneAngle;
+
+        // Left, right and center boundary lines
+        Vector3 leftDir  = Quaternion.Euler(0, -halfAngle, 0) * forward;
+        Vector3 rightDir = Quaternion.Euler(0,  halfAngle, 0) * forward;
+        Gizmos.DrawLine(origin, origin + forward  * r);
+        Gizmos.DrawLine(origin, origin + leftDir  * r);
+        Gizmos.DrawLine(origin, origin + rightDir * r);
+
+        // Arc lines every 10 degrees
+        int steps = Mathf.Max(4, Mathf.RoundToInt(halfAngle * 2 / 10));
+        for (int i = 0; i <= steps; i++)
+        {
+            float t = (float)i / steps;
+            float angleDeg = Mathf.Lerp(-halfAngle, halfAngle, t);
+            Vector3 dir = Quaternion.Euler(0, angleDeg, 0) * forward;
+            if (i > 0)
+            {
+                float prevAngleDeg = Mathf.Lerp(-halfAngle, halfAngle, (float)(i - 1) / steps);
+                Vector3 prevDir = Quaternion.Euler(0, prevAngleDeg, 0) * forward;
+                Gizmos.DrawLine(origin + prevDir * r, origin + dir * r);
+            }
+        }
+    }
+
+    /// <summary>Turret range factoring in range augments.</summary>
+    public float GetEffectiveRange()
+    {
+        float mult = Application.isPlaying
+            ? UpgradesManager.GetStatMultiplier(AugmentType.Range)
+            : 1f;
+        return range * mult;
     }
 }
 

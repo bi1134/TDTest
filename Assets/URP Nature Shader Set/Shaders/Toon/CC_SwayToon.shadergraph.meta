@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: 11d22cfad9e74484093d5f04f42782ba
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241305
+  packageName: URP Nature Shader Set
+  packageVersion: 1.0
+  assetPath: Assets/URP Nature Shader Set/Shaders/Toon/CC_SwayToon.shadergraph
+  uploadId: 548835

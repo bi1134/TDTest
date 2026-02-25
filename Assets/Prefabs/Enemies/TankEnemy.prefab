@@ -322,12 +322,15 @@ MonoBehaviour:
   maxShieldHP: 0
   moneyReward: 20
   statShardPrefab: {fileID: 6782390953603596957, guid: 0c262dc95d247974cbad83af217b86a1, type: 3}
-  statShardDropChance: 1
+  statShardDropChance: 0.042
   currentHealth: 0
   currentShieldHP: 0
   currentSpeed: 0
   maxBarrierHP: 0
   barrierReduction: 0.5
+  isFleshy: 1
+  shieldVisual: {fileID: 0}
+  barrierVisual: {fileID: 0}
   slowMultiplier: 1
   vulnerabilityMultiplier: 1
   fireDOTDamagePerSecond: 0
@@ -336,6 +339,12 @@ MonoBehaviour:
   stunRemainingTime: 0
   currentBarrierHP: 0
   isSpawning: 1
+  gruntSounds: []
+  deathSounds: []
+  poofSounds: []
+  sprintThreshold: 4
+  walkStepInterval: 0.3
+  sprintStepInterval: 0.1
 --- !u!135 &3769920286161589132
 SphereCollider:
   m_ObjectHideFlags: 0

@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: d1d116e61f269e1429973da72e2c67ed
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241305
+  packageName: URP Nature Shader Set
+  packageVersion: 1.0
+  assetPath: Assets/URP Nature Shader Set/DemoScenes/Prefabs/Tree.prefab
+  uploadId: 548835

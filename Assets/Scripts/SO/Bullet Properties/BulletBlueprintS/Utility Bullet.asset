@@ -15,5 +15,5 @@ MonoBehaviour:
   bulletName: Utility bullet
   bulletProperties: {fileID: 11400000, guid: 26a947bdd97b41b48a67bc6346d00a54, type: 2}
   cost: 80
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: a9573a8ffe3307e4b9c8360641f39c59, type: 3}
   description: enemy will be debuffed

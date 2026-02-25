@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e597b8339f2f3d49b99f821c6ab543e, type: 3}
   m_Name: Beam
   m_EditorClassIdentifier: 
-  weaponName: 0
+  weaponName: 3
   groundMask:
     serializedVersion: 2
     m_Bits: 257
   enemyMask:
     serializedVersion: 2
     m_Bits: 128
-  damage: 3
+  damage: 10
   fireRate: 0.5
   bulletsPerTap: 1
   bulletSpeed: 25
@@ -33,5 +33,7 @@ MonoBehaviour:
   burstCount: 3
   burstInterval: 0.05
   beamDuration: 3
-  beamShotInterval: 1.75
-  beamEffectInterval: 0.5
+  beamShotInterval: 2.5
+  beamEffectInterval: 1.25
+  coneAngle: 45
+  coneRange: 8

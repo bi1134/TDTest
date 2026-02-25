@@ -12,14 +12,110 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e29f1a072f49bc145a10958020cebe81, type: 3}
   m_Name: AudioRefClip
   m_EditorClassIdentifier: Assembly-CSharp::AudioRefClip
-  trayPickup: []
-  trayDrop: []
-  traySpawn: []
-  trayFinished: []
-  trayGoesOut: []
-  trayBlocked: []
-  itemMove: []
-  buttonClick: []
+  buttonClick:
+  - {fileID: 8300000, guid: ef26edc6c53358d46818e9b382cb9dbd, type: 3}
+  buttonHover:
+  - {fileID: 8300000, guid: c0bc7c670eac55743a0f12f3c827ec2d, type: 3}
+  uiCancelSounds:
+  - {fileID: 8300000, guid: 4891d1c16797e0a46ba4ab5e6026d52e, type: 3}
+  cardAppear: []
+  cardClick: []
+  cardHover: []
+  coinCollect:
+  - {fileID: 8300000, guid: 6e13d035b9239fa42b4d8c083aae0ca3, type: 3}
+  - {fileID: 8300000, guid: 66bf529b0764efb42a97e9ca519bb9d2, type: 3}
+  - {fileID: 8300000, guid: 5f089171f350fdd4a90ca97f246551fb, type: 3}
+  - {fileID: 8300000, guid: 988111125a280154ba33b0019b5437cc, type: 3}
   gameResultWin: []
   gameResultLose: []
-  gameCombo: []
+  enemyWalk:
+  - {fileID: 8300000, guid: d6487f80853836644b741405f7409406, type: 3}
+  - {fileID: 8300000, guid: f930c1702780ac0469947b2784f2c2d1, type: 3}
+  - {fileID: 8300000, guid: 67fae89c706cb5541aa1e22e6d178367, type: 3}
+  - {fileID: 8300000, guid: 1dcfedce954f323419b07aa68f47324a, type: 3}
+  - {fileID: 8300000, guid: a7a7f1bcccd1a944289ac0d260b0c37d, type: 3}
+  - {fileID: 8300000, guid: 5ceefa0f3c73d7c4d93fabf4030ac537, type: 3}
+  - {fileID: 8300000, guid: 9012f4dbde90974419a78efe2afad486, type: 3}
+  - {fileID: 8300000, guid: 142dc13b36ab4204ba5f450d07737bf4, type: 3}
+  - {fileID: 8300000, guid: 5bf6364ad9e761d44a048af5ae6c91ad, type: 3}
+  - {fileID: 8300000, guid: 0c11bf87520c1524bab9499df11fb3ec, type: 3}
+  enemySprint:
+  - {fileID: 8300000, guid: f26112dc58883384fb242d58450b853c, type: 3}
+  - {fileID: 8300000, guid: 8e87c9d20ceec1943906faffd9d9bd20, type: 3}
+  - {fileID: 8300000, guid: 0876af82348bf7647b3eaf7dfd1c9815, type: 3}
+  - {fileID: 8300000, guid: 85337a06d7d08c04c973022e56365f7c, type: 3}
+  - {fileID: 8300000, guid: ed4fd1069ed14bf4ebbbcaec4f51fdef, type: 3}
+  - {fileID: 8300000, guid: 5adf0d90ad760ee4eb937cddefe0fef9, type: 3}
+  - {fileID: 8300000, guid: fc385a68e31fbe94db57a73fd733f9e0, type: 3}
+  - {fileID: 8300000, guid: 952e5aace185f454aba3c4814d9f5c0b, type: 3}
+  - {fileID: 8300000, guid: 3b8d537e3894b004d9800d214b585420, type: 3}
+  - {fileID: 8300000, guid: 7f955b34ff288ad4bb3c7fc5bdb23998, type: 3}
+  enemyGrunt: []
+  enemyHitFlesh:
+  - {fileID: 8300000, guid: 131fe88a4d1ddcc43b5d5a0feb387a09, type: 3}
+  - {fileID: 8300000, guid: 70bac9233387c5a49a660a9851a4ed31, type: 3}
+  - {fileID: 8300000, guid: 645efbe7305cc40478940ea4aed84074, type: 3}
+  - {fileID: 8300000, guid: 0a665d3b8e74abc47923f09360d54fa5, type: 3}
+  enemyHitShield:
+  - {fileID: 8300000, guid: b7b0a9718dc183d43b63f39cc7980766, type: 3}
+  - {fileID: 8300000, guid: f88eda29188b99a49951beb46ff6740a, type: 3}
+  - {fileID: 8300000, guid: 9db49e1db70d86348ba76f58e84af2ee, type: 3}
+  enemyDeath:
+  - {fileID: 8300000, guid: 9af6359368dc5cd44a707310cf441a75, type: 3}
+  - {fileID: 8300000, guid: 39eb6152a64abf74db1b17eb3599c8e1, type: 3}
+  - {fileID: 8300000, guid: 9c6142ef2e13ea647beaddb3c305b9e7, type: 3}
+  enemyPoof:
+  - {fileID: 8300000, guid: 264c11dd2504853418d39e354510dac9, type: 3}
+  - {fileID: 8300000, guid: a7f9149bd48349442b2e282dee1501af, type: 3}
+  - {fileID: 8300000, guid: 9b684985fc189514e9e943b13b5c16fb, type: 3}
+  - {fileID: 8300000, guid: d1615f346108fdc4c98833b490a03103, type: 3}
+  turretShootCannon:
+  - {fileID: 8300000, guid: f2b16cd1ea062ca4f903cc968d6c7eff, type: 3}
+  turretShootCrossbow:
+  - {fileID: 8300000, guid: 31dc1b413c3b1a344a6f4e2a6611278a, type: 3}
+  turretShootMachineGun:
+  - {fileID: 8300000, guid: 4de427a610a07424d927df2054b00065, type: 3}
+  turretShootMagic: []
+  turretBuild:
+  - {fileID: 8300000, guid: 15cd153b09a8d3a4a82b6c59d5a2f99e, type: 3}
+  - {fileID: 8300000, guid: c73c3befa93a6a249893f546a8def853, type: 3}
+  - {fileID: 8300000, guid: a0adc5802c5ba56419ff7ca379bcf1de, type: 3}
+  - {fileID: 8300000, guid: 658fd0a52ba4aa141bbe6159315a7739, type: 3}
+  turretSell:
+  - {fileID: 8300000, guid: a058a5f035868d14881c8e0402f540d1, type: 3}
+  - {fileID: 8300000, guid: b2988a757c1cc5b4292a0c3c5f95f10f, type: 3}
+  - {fileID: 8300000, guid: 21fb097b488d17f42b9c3d0d5bdd158b, type: 3}
+  - {fileID: 8300000, guid: dd46b770444f5234d9facd0a33705e4c, type: 3}
+  - {fileID: 8300000, guid: 427148b9827f5f1469fa273276506696, type: 3}
+  elementalFire: []
+  elementalIce: []
+  elementalElectric:
+  - {fileID: 8300000, guid: 66db7347e3430104dbc39be9a080db25, type: 3}
+  - {fileID: 8300000, guid: 167a33fc7c91fe446b921fb5d0df158a, type: 3}
+  bulletHitEnemy:
+  - {fileID: 8300000, guid: 8da38d62efac9f94aadb9b693fb3e705, type: 3}
+  bulletHitGround:
+  - {fileID: 8300000, guid: 54ac1233e012ae9459c4176bf52699df, type: 3}
+  - {fileID: 8300000, guid: 0abd3a5a0791f764d96ea83bbfafb4d1, type: 3}
+  - {fileID: 8300000, guid: 367958cb5f0c67f4c93f31feecc3d8ec, type: 3}
+  - {fileID: 8300000, guid: 079dc962f6049374ab719a9bee3fcbda, type: 3}
+  aoeExplosion: []
+  backgroundMusic:
+  - {fileID: 8300000, guid: c0d324dd2094df040a89baae8fce09d6, type: 3}
+  ambientLoops:
+  - {fileID: 8300000, guid: 4092da769cc51c045abf22ffe1213053, type: 3}
+  chunkExpand:
+  - {fileID: 8300000, guid: 264c11dd2504853418d39e354510dac9, type: 3}
+  - {fileID: 8300000, guid: a7f9149bd48349442b2e282dee1501af, type: 3}
+  - {fileID: 8300000, guid: 9b684985fc189514e9e943b13b5c16fb, type: 3}
+  - {fileID: 8300000, guid: d1615f346108fdc4c98833b490a03103, type: 3}
+  shieldBreak:
+  - {fileID: 8300000, guid: 264c11dd2504853418d39e354510dac9, type: 3}
+  - {fileID: 8300000, guid: a7f9149bd48349442b2e282dee1501af, type: 3}
+  - {fileID: 8300000, guid: 9b684985fc189514e9e943b13b5c16fb, type: 3}
+  - {fileID: 8300000, guid: d1615f346108fdc4c98833b490a03103, type: 3}
+  barrierBreak:
+  - {fileID: 8300000, guid: 264c11dd2504853418d39e354510dac9, type: 3}
+  - {fileID: 8300000, guid: a7f9149bd48349442b2e282dee1501af, type: 3}
+  - {fileID: 8300000, guid: 9b684985fc189514e9e943b13b5c16fb, type: 3}
+  - {fileID: 8300000, guid: d1615f346108fdc4c98833b490a03103, type: 3}

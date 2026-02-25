@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: de3b0560f3acfca4683c7c7894d19ac0
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241305
+  packageName: URP Nature Shader Set
+  packageVersion: 1.0
+  assetPath: Assets/URP Nature Shader Set/DemoScenes/Materials/Sun and Moon.mat
+  uploadId: 548835

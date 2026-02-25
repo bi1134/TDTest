@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d0647821084062e48854e740d790d190
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 241305
+  packageName: URP Nature Shader Set
+  packageVersion: 1.0
+  assetPath: Assets/URP Nature Shader Set/DemoScenes/Materials/SwayGrass.mat
+  uploadId: 548835

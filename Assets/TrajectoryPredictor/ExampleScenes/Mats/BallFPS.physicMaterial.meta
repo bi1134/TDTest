@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: c4ed537d969feee4ca99c92e48f210f0
+timeCreated: 1455025294
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 55752
+  packageName: Trajectory Predictor
+  packageVersion: 1.3
+  assetPath: Assets/TrajectoryPredictor/ExampleScenes/Mats/BallFPS.physicMaterial
+  uploadId: 285243

@@ -28,6 +28,7 @@ public class MainMenuUI : MonoBehaviour
 
         playButton.onClick.AddListener(() =>
         {
+            SoundEvents.TriggerButtonClicked(this);
             // Handle Seed Logic
             if (useSeedToggle != null && useSeedToggle.isOn && seedInput != null && !string.IsNullOrEmpty(seedInput.text))
             {
@@ -55,6 +56,7 @@ public class MainMenuUI : MonoBehaviour
 
         quitButton.onClick.AddListener(() =>
         {
+            SoundEvents.TriggerCancelButtonClicked(this);
             Application.Quit();
         });
     }

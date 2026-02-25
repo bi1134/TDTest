@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e953634107674c440bef38e5884d7130
+timeCreated: 1454825780
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 55752
+  packageName: Trajectory Predictor
+  packageVersion: 1.3
+  assetPath: Assets/TrajectoryPredictor/ExampleScenes/Mats/Ball.physicMaterial
+  uploadId: 285243

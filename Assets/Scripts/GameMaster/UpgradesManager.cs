@@ -209,9 +209,31 @@ public class UpgradesManager : MonoBehaviour
 
         activeAugments.Add(augment);
 
+        // Permanent removal for unique items (like new turret blueprints)
+        if (!augment.isRepeatable)
+        {
+            augmentPool.Remove(augment);
+            Debug.Log($"[UpgradesManager] Removed non-repeatable augment from main pool: {augment.augmentName}");
+        }
+
         if (logAugments)
         {
             Debug.Log($"[UpgradesManager] Applied augment: {augment.augmentName} (Total active: {activeAugments.Count})");
+        }
+        
+        // Handle explicit item unlocks
+        if (augment.unlocksItem && augment.addToShop)
+        {
+            if (augment.unlockedTurret != null)
+            {
+                GameEvents.TriggerTurretUnlocked(this, augment.unlockedTurret);
+                Debug.Log($"[UpgradesManager] Unlocked new Turret: {augment.unlockedTurret.turretName}");
+            }
+            if (augment.unlockedBullet != null)
+            {
+                GameEvents.TriggerBulletUnlocked(this, augment.unlockedBullet);
+                Debug.Log($"[UpgradesManager] Unlocked new Bullet: {augment.unlockedBullet.bulletName}");
+            }
         }
 
         // Trigger event so systems can react

@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: cdccc4d549bc22148b823fcd5b134900
+timeCreated: 1476482449
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 73831
+  packageName: ThumbnailCreator
+  packageVersion: 1.0
+  assetPath: Assets/ThumbnailCreator/TestMaterials/TestMaterial2.mat
+  uploadId: 141816

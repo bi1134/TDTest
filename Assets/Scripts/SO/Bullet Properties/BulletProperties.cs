@@ -28,6 +28,10 @@ public class BulletPropertiesSO : ScriptableObject
     public float iceSlowPercent = 0.3f;
     [Tooltip("Slow duration in seconds")]
     public float iceSlowDuration = 2f;
+    [Tooltip("AoE radius of the ice zone strike (Beam/Pulse mode)")]
+    public float iceZoneRadius = 2.5f;
+    [Tooltip("Flat damage dealt to enemies in ice zone on spawn")]
+    public float iceStrikeDamage = 5f;
 
     [Header("Fire Properties")]
     [Tooltip("Damage per second for Fire DOT")]
@@ -38,13 +42,19 @@ public class BulletPropertiesSO : ScriptableObject
     [Header("Electric Properties")]
     [Tooltip("Stun duration in seconds")]
     public float electricStunDuration = 0.5f;
-    [Tooltip("Number of enemies to chain to")]
+    [Tooltip("Number of enemies to chain to (for projectile-mode electrics only)")]
     public int electricChainCount = 2;
     [Tooltip("Chain range in units")]
     public float electricChainRange = 5f;
     [Tooltip("Damage multiplier per chain (e.g., 0.7 = 70% of previous)")]
     [Range(0f, 1f)]
     public float electricChainDamageMultiplier = 0.7f;
+    [Tooltip("AoE radius of the lightning strike (Beam/Pulse mode)")]
+    public float electricStrikeRadius = 2f;
+    [Tooltip("Flat bonus damage from lightning strike (Beam turret)")]
+    public float lightningStrikeDamage = 15f;
+    [Tooltip("Flat bonus damage from static discharge (non-Beam electric turret)")]
+    public float lightningStaticDamage = 8f;
 
     [Header("Explosive Properties")]
     [Tooltip("AoE radius for explosions")]

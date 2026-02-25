@@ -69,6 +69,19 @@ public class MapExpansionManager : MonoBehaviour
 
     private void HandleChunkGenerated(object sender, GameEvents.ChunkGeneratedEventArgs e)
     {
+        // Play VFX + poof sound at center of the newly generated chunk
+        if (worldManager != null)
+        {
+            Vector3Int size = worldManager.chunkSize;
+            float scale = worldManager.worldScale;
+            float cx = e.chunkCoord.x * size.x * scale + size.x * scale * 0.5f;
+            float cz = e.chunkCoord.y * size.z * scale + size.z * scale * 0.5f;
+            Vector3 chunkCenter = new Vector3(cx, 0f, cz);
+
+            VFXManager.Instance?.PlayEffect(VFXType.ChunkExpand, chunkCenter);
+            SoundEvents.TriggerChunkExpand(this, chunkCenter);
+        }
+
         // If a new chunk appears while we are in Preparation mode (e.g. late load on start), refresh buttons
         // BUT if we are pending a wave start, DO NOT show buttons.
         if (isPreparationPhase && !isPendingWave)

@@ -21,13 +21,15 @@ public class CameraController : MonoBehaviour
     public float followOffsetMax = 60f;
     public float followOffsetMinY = 5f;
     public float followOffsetMaxY = 13f;
+    [Tooltip("Forward slide step size vs Y-drop size")]
+    public float slideForwardMultiplier = 1.5f;
 
     [Header("Advanced Options")]
     public bool enableEdgeScroll = true;
     public bool useDragPan = false;
     public int edgeScrollSize = 20;
 
-    public enum ZoomMode { FOV, MoveForward, LowerY }
+    public enum ZoomMode { FOV, MoveForward, LowerY, Slide }
     [SerializeField] private ZoomMode zoomMode = ZoomMode.FOV;
 
     // Internal
@@ -36,6 +38,11 @@ public class CameraController : MonoBehaviour
     private Vector3 followOffset;
     private float targetFOV = 60f;
     float scroll = 0;
+    
+    // Smoothing
+    private Vector3 targetPosition;
+    [Header("Smoothing")]
+    public float positionLerpSpeed = 10f;
 
 
     private void Start()
@@ -43,6 +50,7 @@ public class CameraController : MonoBehaviour
         followComponent = cinemachineCamera.GetComponent<CinemachineFollow>();
         followOffset = followComponent.FollowOffset;
         targetFOV = cinemachineCamera.Lens.FieldOfView;
+        targetPosition = transform.position;
     }
 
     private void Update()
@@ -58,6 +66,9 @@ public class CameraController : MonoBehaviour
 
         HandleZoom();
         HandleFocus();
+        
+        // Apply smoothed movement
+        transform.position = Vector3.Lerp(transform.position, targetPosition, Time.deltaTime * positionLerpSpeed);
     }
 
     #region Movement
@@ -68,7 +79,7 @@ public class CameraController : MonoBehaviour
         if (input.sqrMagnitude > 0.01f) isFocusing = false; // Interrupt focus
 
         Vector3 dir = transform.forward * input.y + transform.right * input.x;
-        transform.position += dir * moveSpeed * Time.deltaTime;
+        targetPosition += dir * moveSpeed * Time.deltaTime;
     }
 
     private void HandleRotation()
@@ -88,7 +99,7 @@ public class CameraController : MonoBehaviour
         if (mousePos.y > Screen.height - edgeScrollSize) inputDir.z += 1f;
 
         Vector3 moveDir = transform.forward * inputDir.z + transform.right * inputDir.x;
-        transform.position += moveDir * moveSpeed * Time.deltaTime;
+        targetPosition += moveDir * moveSpeed * Time.deltaTime;
     }
 
     private void HandleDragPan()
@@ -97,9 +108,13 @@ public class CameraController : MonoBehaviour
         {
             Vector2 mouseDelta = gameInput.GetLookDelta();
             Vector3 panDir = new Vector3(-mouseDelta.x, 0f, -mouseDelta.y) * 0.1f;
-            transform.position += transform.right * panDir.x + transform.forward * panDir.z;
+            targetPosition += transform.right * panDir.x + transform.forward * panDir.z;
         }
     }
+
+    // Set to true only when the camera's ground raycast actually hits
+    private bool isMouseOverGround = false;
+    public bool IsMouseOverGround => isMouseOverGround;
 
     public Vector3 GetMousePosition()
     {
@@ -109,6 +124,11 @@ public class CameraController : MonoBehaviour
         if (Physics.Raycast(ray, out hit, Mathf.Infinity, groundMask))
         {
             lastPosition = hit.point;
+            isMouseOverGround = true;
+        }
+        else
+        {
+            isMouseOverGround = false;
         }
         return lastPosition;
     }
@@ -132,7 +152,22 @@ public class CameraController : MonoBehaviour
             case ZoomMode.LowerY:
                 HandleZoomLowerY(scroll);
                 break;
+            case ZoomMode.Slide:
+                HandleZoomSlide(scroll);
+                break;
         }
+    }
+
+    public void FocusOnChunk(Vector3 centerPosition)
+    {
+        // Cancel any active transitions
+        isFocusing = false;
+        
+        // Offset Z backwards slightly to account for the viewing angle looking "forward" into the grid
+        Vector3 targetOffset = new Vector3(centerPosition.x, centerPosition.y , centerPosition.z - 5f);
+
+        // Instruct camera to lerp to this position naturally
+        targetPosition = targetOffset;
     }
 
     private void HandleCameraZoomFOV(float scroll)
@@ -164,7 +199,7 @@ public class CameraController : MonoBehaviour
             followOffset += zoomDir * zoomAmount; // Zoom out
         }
 
-        if (followOffset.magnitude < followOffsetMin)
+        if (followOffset.magnitude < followOffsetMin || Vector3.Dot(followOffset, zoomDir) < 0)
         {
             followOffset = zoomDir * followOffsetMin;
         }
@@ -192,6 +227,75 @@ public class CameraController : MonoBehaviour
 
         followComponent.FollowOffset = Vector3.Lerp(followComponent.FollowOffset, followOffset, Time.deltaTime * zoomSpeed);
     }
+    
+    private void HandleZoomSlide(float scroll)
+    {
+        if (scroll == 0f) 
+        {
+            // Just continuously lerp to target regardless
+            followComponent.FollowOffset = Vector3.Lerp(followComponent.FollowOffset, followOffset, Time.deltaTime * zoomSpeed);
+            return;
+        }
+
+        Vector3 zoomDirLocal = followOffset.normalized; // In relation to rig
+
+        if (scroll > 0) // Zoom In
+        {
+            // First, push down Y if it's over minimum
+            if (followOffset.y > followOffsetMinY)
+            {
+                followOffset.y -= zoomAmount;
+                // If we overshoot, carry over to forward motion
+                if (followOffset.y < followOffsetMinY)
+                {
+                    float remainder = followOffsetMinY - followOffset.y;
+                    followOffset.y = followOffsetMinY;
+                    followOffset -= zoomDirLocal * (remainder * slideForwardMultiplier); 
+                }
+            }
+            else
+            {
+                // Y is at bottom, move forward
+                followOffset -= zoomDirLocal * (zoomAmount * slideForwardMultiplier);
+            }
+        }
+        else if (scroll < 0) // Zoom Out
+        {
+            // First, pull backward if magnitude is less than max and Y is minimum
+            if (followOffset.magnitude < followOffsetMax && followOffset.y <= followOffsetMinY + 0.1f)
+            {
+                followOffset += zoomDirLocal * (zoomAmount * slideForwardMultiplier);
+                
+                // If it hits back limit or something, start raising Y?
+                // Let's just say we can always raise Y if magnitude reaches a certain point.
+                // Simple logic: If we pulled back past limit, transfer to Y
+                if (followOffset.magnitude > followOffsetMax)
+                {
+                    float remainder = followOffset.magnitude - followOffsetMax;
+                    followOffset = followOffset.normalized * followOffsetMax;
+                    followOffset.y += (remainder / slideForwardMultiplier);
+                }
+            }
+            else
+            {
+                // We are pulled back enough (or Y is already rising), raise Y
+                followOffset.y += zoomAmount;
+            }
+        }
+
+        // Final Clamps
+        followOffset.y = Mathf.Clamp(followOffset.y, followOffsetMinY, followOffsetMaxY);
+
+        // Prevent inversion or zooming too close by comparing direction against the original un-zoomed direction
+        if (followOffset.magnitude < followOffsetMin || Vector3.Dot(followOffset, zoomDirLocal) < 0f)
+        {
+            followOffset = zoomDirLocal * followOffsetMin;
+            // Guarantee we don't breach Y floor while clamped to minimum magnitude
+            if (followOffset.y < followOffsetMinY) followOffset.y = followOffsetMinY;
+        }
+
+        followComponent.FollowOffset = Vector3.Lerp(followComponent.FollowOffset, followOffset, Time.deltaTime * zoomSpeed);
+    }
 
     #endregion
 
@@ -213,8 +317,8 @@ public class CameraController : MonoBehaviour
     {
         if (isFocusing)
         {
-            transform.position = Vector3.Lerp(transform.position, targetFocusPos, Time.deltaTime * focusSpeed);
-            if (Vector3.Distance(transform.position, targetFocusPos) < 0.1f)
+            targetPosition = Vector3.Lerp(targetPosition, targetFocusPos, Time.deltaTime * focusSpeed);
+            if (Vector3.Distance(targetPosition, targetFocusPos) < 0.1f)
             {
                 isFocusing = false;
             }

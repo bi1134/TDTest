@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: bbc9bcd06f84aa242aa4e6c583bac6aa
+timeCreated: 1439286821
+licenseType: Store
+NativeFormatImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 55752
+  packageName: Trajectory Predictor
+  packageVersion: 1.3
+  assetPath: Assets/TrajectoryPredictor/ExampleScenes/Mats/SlateBlue.mat
+  uploadId: 285243

@@ -87,7 +87,10 @@ public class BuildManager : MonoBehaviour
 
         GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
 
+        GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
+
         if (!continuousBuild) ClearTurretSelection();
+        
         return true;
     }
 

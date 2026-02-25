@@ -34,6 +34,7 @@ public class GameOverUI : MonoBehaviour
         {
             copySeedButton.onClick.AddListener(() =>
             {
+                SoundEvents.TriggerButtonClicked(this);
                 if (seedText != null)
                 {
                     GUIUtility.systemCopyBuffer = seedText.text.Replace("Seed: ", "");
@@ -44,13 +45,21 @@ public class GameOverUI : MonoBehaviour
         
         if (retryButton != null)
         {
-            retryButton.onClick.AddListener(RestartGame);
+            retryButton.onClick.AddListener(() =>
+            {
+                SoundEvents.TriggerButtonClicked(this);
+                RestartGame();
+            });
         }
 
         if (quitButton != null)
         {
             // Quit button goes to Main Menu (as requested)
-            quitButton.onClick.AddListener(ReturnToMainMenu);
+            quitButton.onClick.AddListener(() =>
+            {
+                SoundEvents.TriggerCancelButtonClicked(this);
+                ReturnToMainMenu();
+            });
         }
         
         // Ensure panel starts hidden
@@ -96,7 +105,7 @@ public class GameOverUI : MonoBehaviour
     {
         if (levelDefendedText != null)
         {
-            levelDefendedText.text = $"{lastCompletedWave} Level{(lastCompletedWave == 1 ? "" : "s")}";
+            levelDefendedText.text = $"{lastCompletedWave} Wave{(lastCompletedWave == 1 ? "" : "s")}";
         }
     }
 

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e597b8339f2f3d49b99f821c6ab543e, type: 3}
   m_Name: BaseWeapon
   m_EditorClassIdentifier: 
-  weaponName: 0
+  weaponName: 1
   groundMask:
     serializedVersion: 2
     m_Bits: 257
@@ -20,7 +20,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   damage: 10
-  fireRate: 0.5
+  fireRate: 1
   bulletsPerTap: 1
   bulletSpeed: 20
   upwardForce: 0

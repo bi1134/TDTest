@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82724983c787539479b78445fcd06984, type: 3}
+  m_Name: ArcTurretUnlock
+  m_EditorClassIdentifier: Assembly-CSharp::AugmentSO
+  augmentName: Arc turret
+  description: A Turret that can detect enemies from far away
+  icon: {fileID: 0}
+  rarity: 1
+  isRepeatable: 0
+  specialEffect: 
+  unlocksItem: 1
+  unlockedTurret: {fileID: 11400000, guid: 2c277e1a2a6a21142a5d99b72a795bc4, type: 2}
+  unlockedBullet: {fileID: 0}
+  addToShop: 1
