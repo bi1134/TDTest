@@ -18,3 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 923d20a698ee68f4e8c751211a3791fb, type: 3}
   defaultBullet: {fileID: 11400000, guid: 024da10928c6dfd4889a8c3ff7f65c05, type: 2}
   description: dealing damage with fixed amount of bullets
+  displayMesh: {fileID: 6827815193353578633, guid: b492a011d7ad2c64a8b8d4b56dabd91a, type: 3}
+  removeWhenEmpty: 1

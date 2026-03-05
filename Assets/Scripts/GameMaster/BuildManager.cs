@@ -87,7 +87,9 @@ public class BuildManager : MonoBehaviour
 
         GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
 
-        GameUIEvent.MoneyChanged(this, PlayerStats.wallet);
+        // Consume from shop inventory
+        if (Shop.Instance != null)
+            Shop.Instance.ConsumeItem(SelectedTurret);
 
         if (!continuousBuild) ClearTurretSelection();
         
@@ -118,7 +120,11 @@ public class BuildManager : MonoBehaviour
         
         // Install bullet
         turretBase.SetBulletType(SelectedBullet);
-        
+
+        // Consume from shop inventory
+        if (Shop.Instance != null)
+            Shop.Instance.ConsumeItem(SelectedBullet);
+
         if (!continuousInstall) ClearBulletSelection();
         return true;
     }

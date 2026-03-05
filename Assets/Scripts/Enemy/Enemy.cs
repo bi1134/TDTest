@@ -25,6 +25,12 @@ public class Enemy : MonoBehaviour
     [Header("Reward")]
     [SerializeField] private int moneyReward = 10;
 
+    [Header("Experience")]
+    public int xpReward = 10;
+    public int level = 1;
+    private Dictionary<GameObject, float> damageContributors = new Dictionary<GameObject, float>();
+    private GameObject fireDOTSource;
+
     [Header("Drops")]
     public GameObject statShardPrefab;
     [Range(0f, 1f)] public float statShardDropChance = 0.05f; // 5% chance
@@ -141,6 +147,10 @@ public class Enemy : MonoBehaviour
         isStunned = false;
         stunRemainingTime = 0f;
 
+        // Reset damage tracking
+        damageContributors.Clear();
+        fireDOTSource = null;
+
         // Reset Spawn State
         isSpawning = true;
 
@@ -249,9 +259,48 @@ public class Enemy : MonoBehaviour
     {
         // Damage Player
         PlayerStats.Lives -= damageToPlayer;
-        
+
         Debug.Log($"Enemy reached the end! Dealt {damageToPlayer} damage.");
         Die();
+    }
+
+    /// <summary>
+    /// Track cumulative damage per source turret for XP distribution.
+    /// </summary>
+    public void RegisterDamage(GameObject source, float amount)
+    {
+        if (source == null) return;
+        if (damageContributors.ContainsKey(source))
+            damageContributors[source] += amount;
+        else
+            damageContributors[source] = amount;
+    }
+
+    /// <summary>
+    /// Scale enemy stats based on level. Call AFTER ResetEnemy().
+    /// </summary>
+    public void SetLevel(int newLevel)
+    {
+        level = newLevel;
+        float healthScale = 1f + (level - 1) * 0.15f;
+        float speedScale = 1f + (level - 1) * 0.05f;
+        float shieldScale = 1f + (level - 1) * 0.12f;
+
+        maxHealth *= healthScale;
+        baseSpeed *= speedScale;
+        if (maxShieldHP > 0) maxShieldHP *= shieldScale;
+        if (maxBarrierHP > 0) maxBarrierHP *= healthScale;
+
+        xpReward = Mathf.CeilToInt(xpReward * (1f + (level - 1) * 0.1f));
+
+        // Money reward scales +25% compounding per level
+        // Level 1 = base, Level 2 = base * 1.25, Level 3 = base * 1.25^2, etc.
+        moneyReward = Mathf.CeilToInt(moneyReward * Mathf.Pow(1.25f, level - 1));
+
+        // Apply to current values
+        currentHealth = maxHealth;
+        currentShieldHP = maxShieldHP;
+        currentBarrierHP = maxBarrierHP;
     }
 
     protected virtual void Die()
@@ -285,6 +334,25 @@ public class Enemy : MonoBehaviour
             else
             {
                 Instantiate(statShardPrefab, transform.position, Quaternion.identity);
+            }
+        }
+
+        // Distribute XP to turrets that contributed damage
+        float threshold = maxHealth * 0.02f; // 2% of max HP
+        foreach (var kvp in damageContributors)
+        {
+            if (kvp.Key == null) continue;
+            if (kvp.Value >= threshold)
+            {
+                // Try direct parent search first (barrel is child of base)
+                var turretBase = kvp.Key.GetComponentInParent<TurretBaseModule>();
+                if (turretBase == null)
+                {
+                    // Barrel and base may be siblings under Turret root
+                    var turret = kvp.Key.GetComponentInParent<Turret>();
+                    if (turret != null) turretBase = turret.GetComponentInChildren<TurretBaseModule>();
+                }
+                if (turretBase != null) turretBase.AddExperience(xpReward);
             }
         }
 
@@ -375,11 +443,14 @@ public class Enemy : MonoBehaviour
         if (fireDOTRemainingTime > 0 && fireDOTDamagePerSecond > 0)
         {
             fireDOTRemainingTime -= Time.deltaTime;
-            TakeDamageRaw(fireDOTDamagePerSecond * Time.deltaTime);
-            
+            float dotDamage = fireDOTDamagePerSecond * Time.deltaTime;
+            if (fireDOTSource != null) RegisterDamage(fireDOTSource, dotDamage);
+            TakeDamageRaw(dotDamage);
+
             if (fireDOTRemainingTime <= 0)
             {
                 fireDOTDamagePerSecond = 0f;
+                fireDOTSource = null;
             }
         }
     }
@@ -403,9 +474,12 @@ public class Enemy : MonoBehaviour
     /// - Shield HP absorbs damage first
     /// - Vulnerability affects normal HP only
     /// </summary>
-    public void TakeDamage(float damage, bool bypassShield = false, Vector3 hitSourcePos = default)
+    public void TakeDamage(float damage, bool bypassShield = false, Vector3 hitSourcePos = default, GameObject damageSource = null)
     {
         if (!IsAlive) return;
+
+        // Track damage contributor
+        if (damageSource != null) RegisterDamage(damageSource, damage);
 
         float remainingDamage = damage;
 
@@ -585,7 +659,7 @@ public class Enemy : MonoBehaviour
     /// </summary>
     /// <param name="damagePerSecond">DOT damage per second</param>
     /// <param name="duration">Duration in seconds</param>
-    public void ApplyFireDOT(float damagePerSecond, float duration)
+    public void ApplyFireDOT(float damagePerSecond, float duration, GameObject source = null)
     {
         // Refresh or upgrade DOT
         if (damagePerSecond > fireDOTDamagePerSecond)
@@ -593,7 +667,8 @@ public class Enemy : MonoBehaviour
             fireDOTDamagePerSecond = damagePerSecond;
         }
         fireDOTRemainingTime = Mathf.Max(fireDOTRemainingTime, duration);
-        
+        if (source != null) fireDOTSource = source;
+
         Debug.Log($"{gameObject.name}: Burning! {damagePerSecond} DPS for {duration}s");
     }
 

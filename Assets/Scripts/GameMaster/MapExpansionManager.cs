@@ -12,7 +12,8 @@ public class MapExpansionManager : MonoBehaviour
     public float buttonHeightOffset = 2.0f; // Height above ground
     public float edgeOffset = 1.0f;         // Push button slightly out from edge
     
-    private List<MapExpansionButton> activeButtons = new List<MapExpansionButton>();
+    private readonly List<MapExpansionButton> activeButtons = new();
+    private readonly Stack<MapExpansionButton> buttonPool = new();
 
     private bool isPreparationPhase = false;
     private bool isPendingWave = false; // Prevent buttons from showing while waiting for wave to start 
@@ -155,10 +156,11 @@ public class MapExpansionManager : MonoBehaviour
         
         if (!hasEndpointOnThisEdge) return;
 
-        // 4. Spawn Button at Center of NEW Chunk
+        // 4. Get or create button, position at center of NEW chunk
         Vector3 buttonPos = CalculateButtonPosition(neighborCoord, size, scale);
-        
-        MapExpansionButton btn = Instantiate(buttonPrefab, buttonPos, Quaternion.identity, buttonParent != null ? buttonParent : transform);
+
+        MapExpansionButton btn = GetOrCreateButton();
+        btn.transform.position = buttonPos;
         btn.Setup(worldManager, coord, side);
         activeButtons.Add(btn);
         
@@ -185,8 +187,27 @@ public class MapExpansionManager : MonoBehaviour
     {
         foreach (var btn in activeButtons)
         {
-            if (btn != null) Destroy(btn.gameObject);
+            if (btn != null)
+            {
+                btn.gameObject.SetActive(false);
+                buttonPool.Push(btn);
+            }
         }
         activeButtons.Clear();
+    }
+
+    private MapExpansionButton GetOrCreateButton()
+    {
+        MapExpansionButton btn;
+        if (buttonPool.Count > 0)
+        {
+            btn = buttonPool.Pop();
+            btn.gameObject.SetActive(true);
+        }
+        else
+        {
+            btn = Instantiate(buttonPrefab, buttonParent != null ? buttonParent : transform);
+        }
+        return btn;
     }
 }

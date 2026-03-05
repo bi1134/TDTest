@@ -83,7 +83,7 @@ MonoBehaviour:
   firePoints:
   - {fileID: 381810027962799172}
   muzzleFlashes:
-  - {fileID: 4936006882838344731}
+  - {fileID: 1776705303205411891}
   bulletPrefab: {fileID: 6279043409760583730, guid: 7595b4f49f2165a45ba5998ddf2a3788, type: 3}
   currentBulletSO: {fileID: 11400000, guid: e87a95e6808d48943ab3e99dcc196195, type: 2}
   axisRotationDeg: 0
@@ -98,7 +98,7 @@ MonoBehaviour:
   fireFlashParticles:
   - {fileID: 1776705303205411891}
   iceFlashParticles:
-  - {fileID: 4936006882838344731}
+  - {fileID: 1776705303205411891}
   electricFlashParticles:
   - {fileID: 4936006882838344731}
 --- !u!1 &5065912456123827098
@@ -251,6 +251,7 @@ MonoBehaviour:
   currentLevel: 1
   maxLevel: 100
   totalInvestment: 0
+  freeUpgradePoints: 0
 --- !u!65 &2704609498545071977
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -510,15 +511,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8767152486562788127, guid: c4ed38c72957f2241ad144a1614956d9, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8767152486562788127, guid: c4ed38c72957f2241ad144a1614956d9, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8767152486562788127, guid: c4ed38c72957f2241ad144a1614956d9, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8767152486562788127, guid: c4ed38c72957f2241ad144a1614956d9, type: 3}
       propertyPath: m_LocalPosition.x

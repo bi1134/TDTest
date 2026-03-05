@@ -838,7 +838,7 @@ MonoBehaviour:
     - {fileID: 0}
     worldScale: 1
     chunkCoordinate: {x: 0, y: 0}
-  useBurstAcceleration: 0
+  useBurstAcceleration: 1
   generateOnStart: 1
   references:
     version: 2

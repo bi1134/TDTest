@@ -47,6 +47,8 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     private float beamTimer = 0f;
     private float beamShotTimer = 0f;
     private bool isBeamFiring = false;
+    private float flashTimer = 0f;
+    private const float FLASH_INTERVAL = 0.15f; // How often to play muzzle/elemental flash for continuous modes
 
     public void SetTarget(Transform newTarget)
     {
@@ -119,18 +121,25 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                     switch (bulletSO.bulletType)
                     {
                         case BulletType.Fire:
-                            // Continuous cone spray — hits everything in a fan arc
+                            // Continuous cone spray — flash plays continuously
+                            flashTimer -= Time.deltaTime;
+                            if (flashTimer <= 0f)
+                            {
+                                flashTimer = FLASH_INTERVAL;
+                                barrel.PlayFlash();
+                            }
                             float beamRange = parentNode != null ? parentNode.GetEffectiveRange() : weaponStats.coneRange;
                             barrel.FireConeArea(weaponStats, bulletSO, Time.deltaTime, weaponStats.enemyMask, beamRange);
                             break;
-                        
+
                         case BulletType.Ice:
                         case BulletType.Electric:
-                            // Strike at enemy position on an interval
+                            // Strike at enemy position on an interval — flash plays per strike
                             beamShotTimer -= Time.deltaTime;
                             if (beamShotTimer <= 0f)
                             {
                                 beamShotTimer = weaponStats.beamEffectInterval;
+                                barrel.PlayFlash();
                                 float beamBaseDmg = (weaponStats.damage * dmgMult) + dmgFlat;
                                 barrel.SpawnElementalStrike(bulletSO.bulletType, enemy.transform.position, bulletSO, weaponStats.enemyMask, beamBaseDmg, isBeamTurret: true);
                             }
@@ -196,23 +205,30 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
         var bulletSO = barrel.CurrentBulletSO;
         if (bulletSO == null) return;
-        
+
         switch (bulletSO.bulletType)
         {
             case BulletType.Fire:
-                // Continuous cone spray every tick
+                // Continuous cone spray — flash plays continuously
+                flashTimer -= Time.deltaTime;
+                if (flashTimer <= 0f)
+                {
+                    flashTimer = FLASH_INTERVAL;
+                    barrel.PlayFlash();
+                }
                 float pulseRange = parentNode != null ? parentNode.GetEffectiveRange() : weaponStats.coneRange;
                 barrel.FireConeArea(weaponStats, bulletSO, Time.deltaTime, weaponStats.enemyMask, pulseRange);
                 break;
-            
+
             case BulletType.Ice:
             case BulletType.Electric:
-                // Strike at target position on a timer
+                // Strike at target position — flash plays per strike
                 if (pulseTickTimer <= 0f)
                 {
                     pulseTickTimer = pulseTickInterval;
                     if (target != null)
                     {
+                        barrel.PlayFlash();
                         float pulseDmgMult = UpgradesManager.GetStatMultiplier(AugmentType.Damage);
                         float pulseDmgFlat = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
                         float pulseBaseDmg = (weaponStats.damage * pulseDmgMult) + pulseDmgFlat;
@@ -289,7 +305,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
             }
         }
         
-        BulletEffectApplicator.ApplyAOEEffect(enemiesInAOE, bulletSO, tickDamage, target.position);
+        BulletEffectApplicator.ApplyAOEEffect(enemiesInAOE, bulletSO, tickDamage, target.position, gameObject);
         
         Color beamColor = GetElementColor(bulletSO);
         Debug.DrawLine(transform.position, target.position, beamColor, 0.1f);
@@ -408,7 +424,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     }
     
     // --- Upgrade System ---
-    
+
     public enum StatType { Damage, FireRate, Range, BulletsPerTap, BurstCount, BeamDuration, BeamShotInterval }
 
     [Header("Runtime State")]
@@ -416,26 +432,116 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     [TextArea] public string description;
     public int currentLevel = 1;
     public int maxLevel = 100;
-    
+
     public int totalInvestment = 0;
+
+    [Header("Experience")]
+    private int totalExperience;
+    private int xpLevel;
+    public int freeUpgradePoints;
+    private int nextLevelXP;
+    private bool hasNewLevelUp;
+    private GameObject upgradeVFXInstance;
+    public bool HasNewLevelUp => hasNewLevelUp;
+
+    private TurretBlueprintSO installedTurretBlueprint;
+    public TurretBlueprintSO InstalledTurretBlueprint => installedTurretBlueprint;
+
+    private BulletBlueprintSO installedBulletBlueprint;
+    public BulletBlueprintSO InstalledBulletBlueprint => installedBulletBlueprint;
+
+    public int TotalExperience => totalExperience;
+    public int XPLevel => xpLevel;
+    public int FreeUpgradePoints => freeUpgradePoints;
+    public int NextLevelXP => nextLevelXP;
+    /// <summary>XP threshold of the current level (for fill bar calculation)</summary>
+    public int CurrentLevelXP => xpLevel > 0 ? WaveManager.GetTurretXPForLevel(xpLevel) : 0;
     
     public void Initialize(TurretBlueprintSO bp)
     {
+        installedTurretBlueprint = bp;
         turretName = bp.turretName;
         description = bp.description ?? "";
         totalInvestment = bp.cost; // Initial cost
-        
+
         // NOTE: Initialize is also called when the Turret is pulled from the Object Pool.
         weaponStats = Resources.Load<TurretPropertiesSO>(weaponStats.name) ?? Object.Instantiate(weaponStats);
-        
+
         // Reset properties in case it came from the pool with old upgrades
         fireCooldown = 1f / weaponStats.fireRate;
-        // totalInvestment remains the base blueprint cost set above
         currentLevel = 0;
-        
+
+        // Reset XP
+        totalExperience = 0;
+        xpLevel = 0;
+        freeUpgradePoints = 0;
+        nextLevelXP = WaveManager.GetTurretXPForLevel(1);
+        hasNewLevelUp = false;
+        installedBulletBlueprint = null;
+
+        // Cleanup upgrade VFX from previous pool use
+        if (upgradeVFXInstance != null)
+        {
+            VFXManager.Instance?.ReleasePersistentEffect(upgradeVFXInstance);
+            upgradeVFXInstance = null;
+        }
+
         target = null;
         isBeamFiring = false;
         beamTimer = 0f;
+
+        // Initialize cone VFX defaults on barrel
+        if (barrel != null && parentNode != null)
+        {
+            barrel.InitConeParticleDefaults(parentNode.range);
+        }
+    }
+
+    public void AddExperience(int amount)
+    {
+        totalExperience += amount;
+        CheckForLevelUp();
+    }
+
+    private void CheckForLevelUp()
+    {
+        bool didLevelUp = false;
+        while (totalExperience >= nextLevelXP)
+        {
+            xpLevel++;
+            freeUpgradePoints++;
+            nextLevelXP = WaveManager.GetTurretXPForLevel(xpLevel + 1);
+            didLevelUp = true;
+        }
+
+        if (didLevelUp)
+        {
+            hasNewLevelUp = true;
+            ShowUpgradeReadyVFX();
+        }
+    }
+
+    private void ShowUpgradeReadyVFX()
+    {
+        if (upgradeVFXInstance != null) return; // already showing
+        if (VFXManager.Instance == null) return;
+
+        upgradeVFXInstance = VFXManager.Instance.SpawnPersistentEffect(
+            VFXType.UpgradeReady, transform.position, transform);
+    }
+
+    /// <summary>
+    /// Called when the player selects this turret. Hides the upgrade VFX indicator.
+    /// VFX stays hidden until the next level-up.
+    /// </summary>
+    public void AcknowledgeLevelUp()
+    {
+        hasNewLevelUp = false;
+        if (upgradeVFXInstance != null)
+        {
+            VFXManager.Instance?.ReleasePersistentEffect(upgradeVFXInstance);
+            upgradeVFXInstance = null;
+        }
     }
 
     private void ToggleUpgradeUI()
@@ -491,11 +597,9 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
     
     public int GetUpgradeCost(StatType type)
     {
-        // Placeholder formula: Fixed cost 50 for MVP
-        // In future, could scale based on current value or level
-        return 50; 
+        return WaveManager.GetUpgradeCostForLevel(currentLevel);
     }
-    
+
     public void UpgradeStat(StatType type)
     {
         if (currentLevel >= maxLevel)
@@ -505,14 +609,23 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
         }
 
         int cost = GetUpgradeCost(type);
-        if (PlayerStats.wallet < cost)
+
+        if (freeUpgradePoints > 0)
         {
-            Debug.Log("Not enough money to upgrade!");
-            return;
+            // Free upgrade from XP level-up
+            freeUpgradePoints--;
         }
-        
-        PlayerStats.wallet -= cost;
-        totalInvestment += cost;
+        else
+        {
+            if (PlayerStats.wallet < cost)
+            {
+                Debug.Log("Not enough money to upgrade!");
+                return;
+            }
+            PlayerStats.wallet -= cost;
+            totalInvestment += cost;
+        }
+
         currentLevel++;
         
         switch (type)
@@ -588,6 +701,7 @@ public class TurretBaseModule : MonoBehaviour, IPointerEnterHandler, IPointerExi
                  totalInvestment += bulletType.cost;
             }
 
+            installedBulletBlueprint = bulletType;
             barrel.SetBulletType(projectile, properties);
             parentNode.SetBarrelActive(true);
             SoundEvents.TriggerTurretBuilt(this, transform.position);

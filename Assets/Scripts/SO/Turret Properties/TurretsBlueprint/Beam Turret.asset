@@ -18,3 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 72a5da74568baff4ca7282c8d5e3d100, type: 3}
   defaultBullet: {fileID: 11400000, guid: 19b9c4e0041206e42a16b5927016157f, type: 2}
   description: Deal a fast, high speed bullet, slow firerate
+  displayMesh: {fileID: 5995505952091519018, guid: 84d937be176a3e240b807861b6a6d5ed, type: 3}
+  removeWhenEmpty: 1

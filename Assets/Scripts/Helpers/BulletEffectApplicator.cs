@@ -14,15 +14,15 @@ public static class BulletEffectApplicator
     /// Apply bullet effects to an enemy based on bullet type.
     /// For single-target hits (projectile collision, beam)
     /// </summary>
-    public static void ApplyEffect(Enemy enemy, BulletPropertiesSO bullet, float baseDamage, Vector3 attackDirection = default)
+    public static void ApplyEffect(Enemy enemy, BulletPropertiesSO bullet, float baseDamage, Vector3 attackDirection = default, GameObject source = null)
     {
         if (enemy == null || bullet == null) return;
-        
+
         // Apply augment modifiers to damage
         float augmentMultiplier = UpgradesManager.GetStatMultiplier(AugmentType.Damage);
         float augmentFlatBonus = UpgradesManager.GetStatFlatBonus(AugmentType.Damage);
         float modifiedDamage = (baseDamage * augmentMultiplier) + augmentFlatBonus;
-        
+
         // Apply barrier reduction if applicable
         float damage = modifiedDamage;
         if (attackDirection != default)
@@ -33,41 +33,34 @@ public static class BulletEffectApplicator
         switch (bullet.bulletType)
         {
             case BulletType.Normal:
-                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default, source);
                 break;
 
             case BulletType.Explosive:
-                // Explosive is handled separately with AoE
-                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default, source);
                 break;
 
             case BulletType.Electric:
-                // Damage + Stun + Chain (single target only)
-                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default, source);
                 enemy.ApplyStun(bullet.electricStunDuration);
-                // Chain from this single target
-                ChainToNearbyEnemies(enemy, bullet, damage, new HashSet<Enemy> { enemy });
+                ChainToNearbyEnemies(enemy, bullet, damage, new HashSet<Enemy> { enemy }, source);
                 break;
 
             case BulletType.Fire:
-                // Damage + DOT
-                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
-                enemy.ApplyFireDOT(bullet.fireDOTDamagePerSecond, bullet.fireDOTDuration);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default, source);
+                enemy.ApplyFireDOT(bullet.fireDOTDamagePerSecond, bullet.fireDOTDuration, source);
                 break;
 
             case BulletType.Ice:
-                // Damage + Slow
-                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default);
+                enemy.TakeDamage(damage, false, attackDirection != default ? enemy.transform.position - attackDirection : default, source);
                 enemy.ApplySlow(bullet.iceSlowPercent, bullet.iceSlowDuration);
                 break;
 
             case BulletType.Buff:
-                // GDD: Buff bullets never deal damage, never apply elemental effects
                 Debug.Log("Buff bullet hit enemy - no effect (buffs only affect turrets)");
                 break;
 
             case BulletType.Utility:
-                // GDD: Utility only, no damage
                 ApplyUtilityDebuff(enemy, bullet);
                 break;
         }
@@ -79,7 +72,7 @@ public static class BulletEffectApplicator
     /// Fire: damages all + applies DOT to all
     /// Ice: damages all + slows all
     /// </summary>
-    public static void ApplyAOEEffect(List<Enemy> enemies, BulletPropertiesSO bullet, float baseDamage, Vector3 center)
+    public static void ApplyAOEEffect(List<Enemy> enemies, BulletPropertiesSO bullet, float baseDamage, Vector3 center, GameObject source = null)
     {
         if (enemies == null || enemies.Count == 0 || bullet == null) return;
 
@@ -94,34 +87,32 @@ public static class BulletEffectApplicator
             float dist = Vector3.Distance(center, enemy.transform.position);
             float falloff = 1f; // No falloff for this simplified version
             float damage = baseDamage * falloff;
-            
+
             Vector3 attackDir = (enemy.transform.position - center).normalized;
             damage = enemy.ApplyBarrierReduction(damage, attackDir);
 
             switch (bullet.bulletType)
             {
                 case BulletType.Normal:
-                    enemy.TakeDamage(damage, false, center);
+                    enemy.TakeDamage(damage, false, center, source);
                     break;
 
                 case BulletType.Explosive:
-                    enemy.TakeDamage(damage, false, center);
+                    enemy.TakeDamage(damage, false, center, source);
                     break;
 
                 case BulletType.Electric:
-                    // Damage + Stun to all in AOE
-                    enemy.TakeDamage(damage, false, center);
+                    enemy.TakeDamage(damage, false, center, source);
                     enemy.ApplyStun(bullet.electricStunDuration);
-                    // NO chaining within AOE - all are already hit
                     break;
 
                 case BulletType.Fire:
-                    enemy.TakeDamage(damage, false, center);
-                    enemy.ApplyFireDOT(bullet.fireDOTDamagePerSecond, bullet.fireDOTDuration);
+                    enemy.TakeDamage(damage, false, center, source);
+                    enemy.ApplyFireDOT(bullet.fireDOTDamagePerSecond, bullet.fireDOTDuration, source);
                     break;
 
                 case BulletType.Ice:
-                    enemy.TakeDamage(damage, false, center);
+                    enemy.TakeDamage(damage, false, center, source);
                     enemy.ApplySlow(bullet.iceSlowPercent, bullet.iceSlowDuration);
                     break;
 
@@ -130,7 +121,6 @@ public static class BulletEffectApplicator
                     break;
 
                 case BulletType.Buff:
-                    // No effect on enemies
                     break;
             }
         }
@@ -141,7 +131,7 @@ public static class BulletEffectApplicator
             Enemy chainSource = enemies[0];
             if (chainSource != null && chainSource.IsAlive)
             {
-                ChainToNearbyEnemies(chainSource, bullet, baseDamage, aoeHitEnemies);
+                ChainToNearbyEnemies(chainSource, bullet, baseDamage, aoeHitEnemies, source);
             }
         }
     }
@@ -175,7 +165,7 @@ public static class BulletEffectApplicator
     /// <summary>
     /// Electric chain effect - chains to nearby enemies NOT in the exclude set
     /// </summary>
-    private static void ChainToNearbyEnemies(Enemy source, BulletPropertiesSO bullet, float initialDamage, HashSet<Enemy> alreadyHit)
+    private static void ChainToNearbyEnemies(Enemy source, BulletPropertiesSO bullet, float initialDamage, HashSet<Enemy> alreadyHit, GameObject damageSource = null)
     {
         if (bullet.electricChainCount <= 0) return;
 
@@ -184,19 +174,15 @@ public static class BulletEffectApplicator
 
         for (int i = 0; i < bullet.electricChainCount; i++)
         {
-            // Find nearest enemy within chain range that hasn't been hit
             Enemy nearest = FindNearestEnemy(currentSource.transform.position, bullet.electricChainRange, alreadyHit);
-            
+
             if (nearest == null) break;
 
-            // Apply chained damage and stun (originating from currentSource)
-            nearest.TakeDamage(currentDamage, false, currentSource.transform.position);
-            nearest.ApplyStun(bullet.electricStunDuration * 0.5f); // Reduced stun on chain
-            
-            // Visual debug
+            nearest.TakeDamage(currentDamage, false, currentSource.transform.position, damageSource);
+            nearest.ApplyStun(bullet.electricStunDuration * 0.5f);
+
             Debug.DrawLine(currentSource.transform.position, nearest.transform.position, Color.yellow, 0.5f);
 
-            // Add to already hit list so it won't be hit again
             alreadyHit.Add(nearest);
             currentSource = nearest;
             currentDamage *= bullet.electricChainDamageMultiplier;

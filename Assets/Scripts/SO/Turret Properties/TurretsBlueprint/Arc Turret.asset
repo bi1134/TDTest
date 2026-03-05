@@ -18,3 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 468fb46b32c47744d989e95ad57738c2, type: 3}
   defaultBullet: {fileID: 11400000, guid: 024da10928c6dfd4889a8c3ff7f65c05, type: 2}
   description: dealing damage with slow shooting speed, can throw over terrain
+  displayMesh: {fileID: 4384448745206808908, guid: 0721f5ab40b42bf479a0b7f8528a7d92, type: 3}
+  removeWhenEmpty: 1

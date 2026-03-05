@@ -33,3 +33,5 @@ MonoBehaviour:
   - {fileID: 6358602315212755161, guid: c8a6191dbce2ba6459ca5386c0927b3e, type: 3}
   chunkExpand:
   - {fileID: 6813416509558619124, guid: 3b7f2c753d435d647a80f1f047a113e3, type: 3}
+  upgradeReady:
+  - {fileID: 7178363855301404251, guid: b6d3c3bce60c5aa4796632992ed3e212, type: 3}

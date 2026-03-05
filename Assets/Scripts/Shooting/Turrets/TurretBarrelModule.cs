@@ -28,7 +28,7 @@ public class TurretBarrelModule : MonoBehaviour
     [SerializeField] private float jitterAxisRotationDeg = 0f;
 
     // Beam effect timer (interval comes from TurretPropertiesSO)
-    
+
     // Beam state
     private float beamEffectTimer = 0f;
 
@@ -48,56 +48,191 @@ public class TurretBarrelModule : MonoBehaviour
     private float beamLastFireTime = -99f;
     private const float CONE_VFX_FADE_DELAY = 0.15f;
 
-    public BulletPropertiesSO CurrentBulletSO => currentBulletSO;
-
-    /// <summary>
-    /// One-shot burst of the elemental particle matching the current bullet type.
-    /// Called alongside PlayMuzzleFlash every time the turret shoots.
-    /// </summary>
-    private void PlayElementalFlash()
+    // --- Cone Particle Defaults (Part 1: VFX Scaling) ---
+    private struct ConeParticleData
     {
-        // Diagnostic — remove once confirmed working
-        Debug.Log($"[ElementalFlash] Called. currentBulletSO={(currentBulletSO != null ? currentBulletSO.name : "NULL")} bulletType={(currentBulletSO != null ? currentBulletSO.bulletType.ToString() : "N/A")}");
-
-        ParticleSystem[] arr = null;
-        if (currentBulletSO != null)
-        {
-            arr = currentBulletSO.bulletType switch
-            {
-                BulletType.Fire     => fireFlashParticles,
-                BulletType.Ice      => iceFlashParticles,
-                BulletType.Electric => electricFlashParticles,
-                _                   => null
-            };
-        }
-
-        Debug.Log($"[ElementalFlash] arr={(arr != null ? arr.Length.ToString() : "NULL")}");
-
-        if (arr == null || arr.Length == 0) return;
-
-        float longestDuration = 0.5f; // minimum fallback
-        foreach (var ps in arr)
-        {
-            if (ps == null) continue;
-            ps.gameObject.SetActive(true);
-            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            ps.Play(true);
-            // Use Evaluate(1) instead of constantMax — handles all MinMaxCurve modes
-            float dur = ps.main.duration + ps.main.startLifetime.Evaluate(1f);
-            if (dur > longestDuration) longestDuration = dur;
-            Debug.Log($"[ElementalFlash] Playing {ps.gameObject.name}, dur={dur}");
-        }
-
-        StartCoroutine(HideAfterDelay(arr, longestDuration));
+        public ParticleSystem ps;
+        public float baseSpeedMin;
+        public float baseSpeedMax;
+        public int baseMaxParticles;
     }
 
-    private System.Collections.IEnumerator HideAfterDelay(ParticleSystem[] arr, float delay)
+    private List<ConeParticleData> coneParticleDefaults = new List<ConeParticleData>();
+    private float coneBaseRange = 4f;
+    private bool coneDefaultsInitialized = false;
+
+    public BulletPropertiesSO CurrentBulletSO => currentBulletSO;
+
+    // Which flash array is currently active (null = use default muzzle)
+    private ParticleSystem[] activeFlashParticles;
+
+    private void Awake()
     {
-        yield return new WaitForSeconds(delay);
+        // Disable everything on startup
+        SetFlashArrayActive(fireFlashParticles, false);
+        SetFlashArrayActive(iceFlashParticles, false);
+        SetFlashArrayActive(electricFlashParticles, false);
+        activeFlashParticles = null;
+
+        // If bullet type is already serialized on the prefab, activate the right flash now
+        if (currentBulletSO != null)
+        {
+            ActivateFlashForBulletType(currentBulletSO);
+        }
+    }
+
+    private void OnEnable()
+    {
+        // Re-activate flashes when turret is pulled from pool (Awake doesn't re-run)
+        if (currentBulletSO != null)
+        {
+            ActivateFlashForBulletType(currentBulletSO);
+        }
+    }
+
+    /// <summary>
+    /// Permanently enable the matching elemental flash and disable all others + default muzzle.
+    /// Called when a bullet type is installed.
+    /// </summary>
+    private void ActivateFlashForBulletType(BulletPropertiesSO bulletSO)
+    {
+        // Disable all first
+        SetFlashArrayActive(fireFlashParticles, false);
+        SetFlashArrayActive(iceFlashParticles, false);
+        SetFlashArrayActive(electricFlashParticles, false);
+        activeFlashParticles = null;
+
+        if (bulletSO == null) return;
+
+        // Pick the matching array
+        ParticleSystem[] match = bulletSO.bulletType switch
+        {
+            BulletType.Fire     => fireFlashParticles,
+            BulletType.Ice      => iceFlashParticles,
+            BulletType.Electric => electricFlashParticles,
+            _                   => null
+        };
+
+        if (match != null && match.Length > 0)
+        {
+            // Permanently enable the matching flash GameObjects (but don't play yet)
+            SetFlashArrayActive(match, true);
+            // Stop them so they don't auto-play on enable
+            foreach (var ps in match)
+            {
+                if (ps != null)
+                {
+                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    // Disable Play On Awake to prevent auto-play on SetActive
+                    var main = ps.main;
+                    main.playOnAwake = false;
+                }
+            }
+            activeFlashParticles = match;
+
+            // Hide default muzzle since elemental replaces it
+            SetFlashArrayActive(muzzleFlashes, false);
+        }
+        else
+        {
+            // No elemental match — re-enable default muzzle
+            if (muzzleFlashes != null && muzzleFlashes.Length > 0)
+            {
+                SetFlashArrayActive(muzzleFlashes, true);
+                foreach (var ps in muzzleFlashes)
+                {
+                    if (ps != null) ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                }
+            }
+        }
+    }
+
+    private void SetFlashArrayActive(ParticleSystem[] arr, bool active)
+    {
+        if (arr == null) return;
         foreach (var ps in arr)
         {
-            if (ps != null) ps.gameObject.SetActive(false);
+            if (ps != null) ps.gameObject.SetActive(active);
         }
+    }
+
+    /// <summary>
+    /// Capture base startSpeed and maxParticles for each cone particle system and its children.
+    /// Call once after the turret is placed / initialized.
+    /// </summary>
+    public void InitConeParticleDefaults(float baseRange)
+    {
+        coneBaseRange = Mathf.Max(1f, baseRange);
+        coneParticleDefaults.Clear();
+
+        if (coneParticles == null) { coneDefaultsInitialized = true; return; }
+
+        foreach (var ps in coneParticles)
+        {
+            if (ps == null) continue;
+            CaptureParticleDefaults(ps);
+            // Also capture children
+            foreach (Transform child in ps.transform)
+            {
+                var childPS = child.GetComponent<ParticleSystem>();
+                if (childPS != null) CaptureParticleDefaults(childPS);
+            }
+        }
+        coneDefaultsInitialized = true;
+    }
+
+    private void CaptureParticleDefaults(ParticleSystem ps)
+    {
+        var main = ps.main;
+        coneParticleDefaults.Add(new ConeParticleData
+        {
+            ps = ps,
+            baseSpeedMin = main.startSpeed.constantMin,
+            baseSpeedMax = main.startSpeed.constantMax,
+            baseMaxParticles = main.maxParticles
+        });
+    }
+
+    /// <summary>
+    /// Update cone particle speed and max particles when turret range changes.
+    /// </summary>
+    public void SetConeRange(float currentRange)
+    {
+        if (!coneDefaultsInitialized || coneParticleDefaults.Count == 0) return;
+
+        float rangeDelta = currentRange - coneBaseRange;
+        float rangeRatio = currentRange / coneBaseRange;
+
+        foreach (var data in coneParticleDefaults)
+        {
+            if (data.ps == null) continue;
+            var main = data.ps.main;
+            main.startSpeed = new ParticleSystem.MinMaxCurve(
+                data.baseSpeedMin + rangeDelta,
+                data.baseSpeedMax + rangeDelta
+            );
+            main.maxParticles = Mathf.Max(1, (int)(data.baseMaxParticles * rangeRatio));
+        }
+    }
+
+    /// <summary>
+    /// Play the pre-activated elemental flash particles.
+    /// Returns true if elemental flash exists and was played, false otherwise.
+    /// </summary>
+    private bool PlayElementalFlash()
+    {
+        if (activeFlashParticles == null || activeFlashParticles.Length == 0) return false;
+
+        foreach (var ps in activeFlashParticles)
+        {
+            if (ps == null) continue;
+            if (!ps.gameObject.activeInHierarchy) continue;
+            // Robust restart: Clear → Simulate(0, restart) → Play
+            ps.Clear(true);
+            ps.Simulate(0f, true, true);
+            ps.Play(true);
+        }
+        return true;
     }
 
     #region Public Setup Methods
@@ -109,6 +244,7 @@ public class TurretBarrelModule : MonoBehaviour
     {
         bulletPrefab = prefab;
         currentBulletSO = bulletSO;
+        ActivateFlashForBulletType(bulletSO);
     }
 
     /// <summary>
@@ -121,6 +257,7 @@ public class TurretBarrelModule : MonoBehaviour
         {
             currentBulletSO = prefab.Settings;
         }
+        ActivateFlashForBulletType(currentBulletSO);
     }
 
     /// <summary>
@@ -293,61 +430,60 @@ public class TurretBarrelModule : MonoBehaviour
         SoundEvents.TriggerTurretShoot(this, GetFirePoint(barrelToUse).position, s.weaponName, s.fireMode);
         Transform fireOrigin = GetFirePoint(barrelToUse);
 
-        BulletProjectile proj = null;
-        if (BulletPoolManager.Instance != null && bulletPrefab != null)
-        {
-            proj = BulletPoolManager.Instance.SpawnBullet(bulletPrefab.gameObject, fireOrigin.position, Quaternion.identity);
-        }
-        else
-        {
-            var go = Instantiate(bulletPrefab, fireOrigin.position, Quaternion.identity);
-            proj = go.GetComponent<BulletProjectile>();
-        }
-        
-        if (proj != null) proj.SetShooter(gameObject);
-
         Vector3 origin = fireOrigin.position;
-        // Vector3 direction = (targetPos - origin).normalized; // Not used for velocity calculation now due to override
-        
+
         // Fixed Height Arc Logic (requested by User)
         // Vy = upwardForce
         // Solve T: 0.5*g*T^2 - Vy*T + dy = 0
-        
+
         float Vy = s.upwardForce;
         float gravity = Physics.gravity.magnitude;
         float dy = targetPos.y - origin.y;
-        
+
         float a = 0.5f * gravity;
         float b = -Vy;
         float c = dy;
-        
+
         float det = b*b - 4f*a*c;
         float T = 0f;
-        
+
         if (det < 0)
         {
-            // Can't reach height, use max possible time (apex) or just force flat shot?
-            // Fallback: Use standard heuristic
             T = Vector3.Distance(origin, targetPos) / 20f;
         }
         else
         {
-            // Use longer time (downward slope hit)
             T = (-b + Mathf.Sqrt(det)) / (2f * a);
         }
-        
+
         if (T <= 0.01f) T = 0.1f;
-        
+
         // Horizontal Velocity
         Vector3 d = targetPos - origin;
         d.y = 0; // Horizontal vector
         float dist = d.magnitude;
-        
+
         float Vx = dist / T;
-        
+
         Vector3 horizontalDir = d.normalized;
         Vector3 v0 = horizontalDir * Vx + Vector3.up * Vy;
-        
+
+        // Spawn with rotation facing initial velocity direction
+        Quaternion arcRotation = v0.sqrMagnitude > 0.01f ? Quaternion.LookRotation(v0) : Quaternion.identity;
+
+        BulletProjectile proj = null;
+        if (BulletPoolManager.Instance != null && bulletPrefab != null)
+        {
+            proj = BulletPoolManager.Instance.SpawnBullet(bulletPrefab.gameObject, fireOrigin.position, arcRotation);
+        }
+        else
+        {
+            var go = Instantiate(bulletPrefab, fireOrigin.position, arcRotation);
+            proj = go.GetComponent<BulletProjectile>();
+        }
+
+        if (proj != null) proj.SetShooter(gameObject);
+
         // Use v0 override
         proj.Initialize(default, 0f, 0f, s.damage, currentBulletSO, null, true, v0);
         
@@ -393,7 +529,7 @@ public class TurretBarrelModule : MonoBehaviour
         
         if (shouldDealDamage)
         {
-            target.TakeDamage(frameDamage);
+            target.TakeDamage(frameDamage, false, default, gameObject);
         }
 
         beamEffectTimer -= deltaTime;
@@ -425,11 +561,11 @@ public class TurretBarrelModule : MonoBehaviour
                 var bulletSO = bulletProperties ?? currentBulletSO;
                 if (bulletSO != null)
                 {
-                    BulletEffectApplicator.ApplyEffect(enemy, bulletSO, weaponStats.damage, dir);
+                    BulletEffectApplicator.ApplyEffect(enemy, bulletSO, weaponStats.damage, dir, gameObject);
                 }
                 else
                 {
-                    enemy.TakeDamage(weaponStats.damage);
+                    enemy.TakeDamage(weaponStats.damage, false, default, gameObject);
                 }
             }
             
@@ -454,14 +590,15 @@ public class TurretBarrelModule : MonoBehaviour
         {
             case BulletType.Fire:
                 target.ApplyFireDOT(
-                    currentBulletSO.fireDOTDamagePerSecond, 
-                    currentBulletSO.fireDOTDuration
+                    currentBulletSO.fireDOTDamagePerSecond,
+                    currentBulletSO.fireDOTDuration,
+                    gameObject
                 );
                 break;
 
             case BulletType.Ice:
                 target.ApplySlow(
-                    currentBulletSO.iceSlowPercent, 
+                    currentBulletSO.iceSlowPercent,
                     currentBulletSO.iceSlowDuration
                 );
                 break;
@@ -472,7 +609,7 @@ public class TurretBarrelModule : MonoBehaviour
                 float chainDamage = 5f; // Base chain damage for beam
                 Transform activeFirePoint = GetCurrentFirePoint();
                 Vector3 dir = (target.transform.position - activeFirePoint.position).normalized;
-                BulletEffectApplicator.ApplyEffect(target, currentBulletSO, chainDamage, dir);
+                BulletEffectApplicator.ApplyEffect(target, currentBulletSO, chainDamage, dir, gameObject);
                 break;
 
             case BulletType.Utility:
@@ -543,9 +680,8 @@ public class TurretBarrelModule : MonoBehaviour
         // Use turret effective range as cone range
         float range = turretRange > 0 ? turretRange : (weaponStats.coneRange > 0 ? weaponStats.coneRange : 8f);
 
-        // Scale VFX: 1 prefab unit = range 7, so scale = range / 7
-        float vfxScale = range / 7f;
-        SetConeVFXActive(true, vfxScale);
+        // Scale VFX particle speed/count based on turret range
+        SetConeVFXActive(true, range);
         beamLastFireTime = Time.time;
 
         // Fire damage = 50% of base DPS
@@ -562,9 +698,9 @@ public class TurretBarrelModule : MonoBehaviour
             float angle = Vector3.Angle(forward, toEnemy);
             if (angle > weaponStats.coneAngle) continue;
 
-            enemy.TakeDamage(fireDamage);
+            enemy.TakeDamage(fireDamage, false, default, gameObject);
             // Apply fire DOT (no extra hit damage, just the effect)
-            BulletEffectApplicator.ApplyEffect(enemy, bulletSO, 0f, toEnemy);
+            BulletEffectApplicator.ApplyEffect(enemy, bulletSO, 0f, toEnemy, gameObject);
         }
 
         // Throttled sound
@@ -597,9 +733,8 @@ public class TurretBarrelModule : MonoBehaviour
                 {
                     if (col.TryGetComponent(out Enemy eHit) && eHit.IsAlive)
                     {
-                        eHit.TakeDamage(electricDamage);
+                        eHit.TakeDamage(electricDamage, false, default, gameObject);
                         eHit.ApplyStun(bulletSO?.electricStunDuration ?? 0.5f);
-                        // No chain
                     }
                 }
                 SoundEvents.TriggerElementalStrike(this, BulletType.Electric, worldPos);
@@ -615,7 +750,7 @@ public class TurretBarrelModule : MonoBehaviour
                 {
                     if (col.TryGetComponent(out Enemy iHit) && iHit.IsAlive)
                     {
-                        iHit.TakeDamage(iceDamage);
+                        iHit.TakeDamage(iceDamage, false, default, gameObject);
                         iHit.ApplySlow(bulletSO?.iceSlowPercent ?? 0.3f, bulletSO?.iceSlowDuration ?? 2f);
                     }
                 }
@@ -625,25 +760,77 @@ public class TurretBarrelModule : MonoBehaviour
     }
 
     /// <summary>
-    /// Lerp the cone particle scale smoothly between 0 and targetScale.
-    /// SetActive(true) when starting. SetActive(false) when scale drops below threshold.
+    /// Enable/disable cone particles. Lerps localScale 0↔1 AND adjusts startSpeed/maxParticles
+    /// based on range for smooth on/off with proper particle behavior.
     /// </summary>
-    public void SetConeVFXActive(bool firing, float targetScale = 1f)
+    public void SetConeVFXActive(bool firing, float turretRange = 0f)
     {
         if (coneParticles == null || coneParticles.Length == 0) return;
-        Vector3 target = firing ? Vector3.one * targetScale : Vector3.zero;
-        foreach (var ps in coneParticles)
+
+        float lerpSpeed = Time.deltaTime * 8f;
+
+        if (firing)
         {
-            if (ps == null) continue;
-            // Activate before scaling up
-            if (firing && !ps.gameObject.activeSelf)
-                ps.gameObject.SetActive(true);
+            // Update particle properties based on range
+            if (turretRange > 0f && coneDefaultsInitialized)
+            {
+                SetConeRange(turretRange);
+            }
 
-            ps.transform.localScale = Vector3.Lerp(ps.transform.localScale, target, Time.deltaTime * 12f);
+            foreach (var ps in coneParticles)
+            {
+                if (ps == null) continue;
+                if (!ps.gameObject.activeSelf)
+                {
+                    ps.transform.localScale = Vector3.zero;
+                    ps.gameObject.SetActive(true);
+                    ps.Play(true);
+                }
+                // Lerp scale toward 1
+                ps.transform.localScale = Vector3.Lerp(ps.transform.localScale, Vector3.one, lerpSpeed);
+            }
+        }
+        else
+        {
+            bool allFaded = true;
 
-            // Deactivate after fully faded
-            if (!firing && ps.transform.localScale.sqrMagnitude < 0.0001f)
-                ps.gameObject.SetActive(false);
+            // Lerp scale toward 0
+            foreach (var ps in coneParticles)
+            {
+                if (ps == null || !ps.gameObject.activeSelf) continue;
+                ps.transform.localScale = Vector3.Lerp(ps.transform.localScale, Vector3.zero, lerpSpeed);
+                if (ps.transform.localScale.x > 0.01f)
+                    allFaded = false;
+            }
+
+            // Also lerp startSpeed/maxParticles toward 0 for particle fade
+            if (coneDefaultsInitialized && coneParticleDefaults.Count > 0)
+            {
+                foreach (var data in coneParticleDefaults)
+                {
+                    if (data.ps == null || !data.ps.gameObject.activeSelf) continue;
+                    var main = data.ps.main;
+                    float curMax = main.startSpeed.constantMax;
+                    float curMin = main.startSpeed.constantMin;
+                    main.startSpeed = new ParticleSystem.MinMaxCurve(
+                        Mathf.Lerp(curMin, 0f, lerpSpeed),
+                        Mathf.Lerp(curMax, 0f, lerpSpeed)
+                    );
+                    main.maxParticles = Mathf.Max(0, (int)Mathf.Lerp(main.maxParticles, 0f, lerpSpeed));
+                }
+            }
+
+            if (allFaded)
+            {
+                foreach (var ps in coneParticles)
+                {
+                    if (ps != null && ps.gameObject.activeSelf)
+                    {
+                        ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                        ps.gameObject.SetActive(false);
+                    }
+                }
+            }
         }
     }
 
@@ -680,9 +867,10 @@ public class TurretBarrelModule : MonoBehaviour
 
     private void PlayMuzzleFlash(int index)
     {
-        // Always fire elemental flash first — even when muzzleFlashes[] is empty
-        PlayElementalFlash();
+        // Try elemental flash first — skip default muzzle if elemental played
+        if (PlayElementalFlash()) return;
 
+        // No elemental match — play default muzzle flash as fallback
         if (muzzleFlashes == null || muzzleFlashes.Length == 0) return;
         if (index >= muzzleFlashes.Length) index = 0;
 
@@ -692,6 +880,15 @@ public class TurretBarrelModule : MonoBehaviour
             flash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             flash.Play(true);
         }
+    }
+
+    /// <summary>
+    /// Public entry point for playing muzzle/elemental flash.
+    /// Used by TurretBaseModule for beam/pulse modes that bypass FireBullet().
+    /// </summary>
+    public void PlayFlash()
+    {
+        PlayMuzzleFlash(currentBarrelIndex);
     }
 
     #endregion

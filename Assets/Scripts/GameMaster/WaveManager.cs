@@ -13,6 +13,18 @@ public class WaveManager : MonoBehaviour
 
     public GameInputs inputs;
 
+    [Header("Enemy Level Curve")]
+    [Tooltip("X = wave number (1, 2, 3...), Y = enemy level. Keep Y values LOW — level 2 already means +15% HP. Wave 1 should output ~1, wave 50 maybe ~30.")]
+    public AnimationCurve enemyLevelCurve = AnimationCurve.Linear(1, 1, 50, 30);
+
+    [Header("Turret XP Curve (the big one — use your snake curve here)")]
+    [Tooltip("X = turret XP level (1, 2, 3...), Y = total XP needed to reach that level. This is where you put your 1000-level / 100000-XP curve.")]
+    public AnimationCurve turretXPCurve = AnimationCurve.EaseInOut(0, 0, 20, 2000);
+
+    [Header("Upgrade Cost Curve")]
+    [Tooltip("X = turret upgrade level (0, 1, 2...), Y = money cost ($) per upgrade.")]
+    public AnimationCurve upgradeCostCurve = AnimationCurve.Linear(0, 50, 50, 500);
+
     [Header("Wave Configuration (Simple List for Phase E)")]
     public List<WaveConfig> waves = new List<WaveConfig>();
 
@@ -82,6 +94,34 @@ public class WaveManager : MonoBehaviour
             Instance = null;
         }
     }
+
+    #region Leveling Curve Accessors
+
+    /// <summary>Evaluate enemy level for a given wave number.</summary>
+    public static int GetEnemyLevel(int waveNumber)
+    {
+        if (Instance == null || Instance.enemyLevelCurve == null || Instance.enemyLevelCurve.length == 0)
+            return Mathf.Max(1, waveNumber);
+        return Mathf.Max(1, Mathf.RoundToInt(Instance.enemyLevelCurve.Evaluate(waveNumber)));
+    }
+
+    /// <summary>Total XP a turret needs to reach the given XP level.</summary>
+    public static int GetTurretXPForLevel(int xpLevel)
+    {
+        if (Instance == null || Instance.turretXPCurve == null || Instance.turretXPCurve.length == 0)
+            return 100 * xpLevel; // linear fallback
+        return Mathf.Max(1, (int)Instance.turretXPCurve.Evaluate(xpLevel));
+    }
+
+    /// <summary>Money cost for a turret upgrade at the given upgrade level.</summary>
+    public static int GetUpgradeCostForLevel(int upgradeLevel)
+    {
+        if (Instance == null || Instance.upgradeCostCurve == null || Instance.upgradeCostCurve.length == 0)
+            return 50; // fallback
+        return Mathf.Max(1, (int)Instance.upgradeCostCurve.Evaluate(upgradeLevel));
+    }
+
+    #endregion
 
     private void HandleMapExpansionStarted(object sender, System.EventArgs e)
     {
@@ -221,10 +261,10 @@ public class WaveManager : MonoBehaviour
     private void SpawnEnemy(GameObject prefab, Vector3 position, List<Vector3> path)
     {
         if (prefab == null) return;
-        
+
         // Fix: Spawn slightly above path to avoid clipping
         Vector3 spawnPos = position + Vector3.up * 1.0f; // +1 Y offset
-        
+
         Enemy enemy = null;
         if (EnemyPoolManager.Instance != null)
         {
@@ -235,9 +275,13 @@ public class WaveManager : MonoBehaviour
             GameObject go = Instantiate(prefab, spawnPos, Quaternion.identity);
             enemy = go.GetComponent<Enemy>();
         }
-        
+
         if (enemy != null)
         {
+            // Apply wave-based leveling AFTER ResetEnemy (which happens in pool's actionOnGet)
+            int enemyLevel = GetEnemyLevel(activeWaveCount);
+            enemy.SetLevel(enemyLevel);
+
             enemy.SetPath(path);
         }
     }

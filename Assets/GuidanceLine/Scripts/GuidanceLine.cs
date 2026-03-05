@@ -11,6 +11,9 @@ namespace GuidanceLine
         public bool ToggleGizmos = true;
         public float gizmoSphereRadius = 0.1f; // Radius of the gizmo spheres
 
+        [Tooltip("When true, the line is static (no checkpoint removal on proximity). Used for path visualization.")]
+        public bool staticPath = false;
+
         [Tooltip("Reference your player here")]
         public Transform startPoint; // The start of the line
 
@@ -64,6 +67,10 @@ namespace GuidanceLine
         void Update()
         {
             DrawCurvedLine();
+
+            // Static paths (visualization only) skip checkpoint removal
+            if (staticPath) return;
+
             float distanceToFirstCheckPoint;
             activecheckPoint = (checkPoints.Length > 0) ? checkPoints[0] : endPoint;
             distanceToFirstCheckPoint = (checkPoints.Length == 0) ? Vector3.Distance(startPoint.position, endPoint.position) : Vector3.Distance(startPoint.position, checkPoints[0].position);

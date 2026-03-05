@@ -18,3 +18,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: a74f807dac7678d419468827c600be82, type: 3}
   defaultBullet: {fileID: 11400000, guid: 024da10928c6dfd4889a8c3ff7f65c05, type: 2}
   description: dealing damage with slow shooting speed
+  displayMesh: {fileID: 4333686516458045473, guid: 2c0b951e00c93b8409b7a1a9a8856169, type: 3}
+  removeWhenEmpty: 0

@@ -139,7 +139,8 @@ public class BulletProjectile : MonoBehaviour
 
         rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
-        rb.position = transform.position; // Force Rigidbody to snap here before force is applied.
+        rb.position = transform.position;
+        rb.rotation = transform.rotation; // Sync Rigidbody rotation with transform (pool may retain old rotation)
 
         if (velocityOverride.HasValue)
             rb.linearVelocity = velocityOverride.Value;
@@ -264,6 +265,7 @@ public class BulletProjectile : MonoBehaviour
                 rb.AddForce(Physics.gravity * (activeSettings.gravityScale - 1f), ForceMode.Acceleration);
             }
         }
+
     }
 
     private void OnDisable()
@@ -375,7 +377,7 @@ public class BulletProjectile : MonoBehaviour
                 if (collision.gameObject.TryGetComponent(out Enemy enemy))
                 {
                     Vector3 attackDir = rb.linearVelocity.normalized;
-                    BulletEffectApplicator.ApplyEffect(enemy, activeSettings, baseDamage, attackDir);
+                    BulletEffectApplicator.ApplyEffect(enemy, activeSettings, baseDamage, attackDir, shooterGameObject);
                 }
                 
                 // For non-explosive bullet hits, Enemy.TakeDamage will spawn Blood/Sparks.
@@ -508,7 +510,7 @@ public class BulletProjectile : MonoBehaviour
             }
         }
 
-        BulletEffectApplicator.ApplyAOEEffect(enemiesInAOE, activeSettings, baseDamage, center);
+        BulletEffectApplicator.ApplyAOEEffect(enemiesInAOE, activeSettings, baseDamage, center, shooterGameObject);
         
         Deactivate();
     }
@@ -580,7 +582,7 @@ public class BulletProjectile : MonoBehaviour
 
         if (enemies.Count > 0)
         {
-            BulletEffectApplicator.ApplyAOEEffect(enemies, bulletSO, baseDamage, hitPoint);
+            BulletEffectApplicator.ApplyAOEEffect(enemies, bulletSO, baseDamage, hitPoint, shooterGameObject);
         }
 
         Deactivate();

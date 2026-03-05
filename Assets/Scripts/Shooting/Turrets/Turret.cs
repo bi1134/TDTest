@@ -16,7 +16,7 @@ public class Turret : MonoBehaviour
     {
         None,
         SinglePart_BothAxes,
-        Split_BaseY_BarrelX,
+        Split_BaseY_BarrelX, 
         Base_Y_Only
     }
 
@@ -57,7 +57,9 @@ public class Turret : MonoBehaviour
         if (target != null)
         {
             Vector3 curPos = target.position;
-            targetVelocity = (curPos - prevTargetPos) / Time.fixedDeltaTime;
+            Vector3 instantVelocity = (curPos - prevTargetPos) / Time.fixedDeltaTime;
+            // Smooth velocity to prevent aim jitter from frame-to-frame noise
+            targetVelocity = Vector3.Lerp(targetVelocity, instantVelocity, 0.25f);
             prevTargetPos = curPos;
         }
     }

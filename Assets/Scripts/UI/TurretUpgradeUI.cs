@@ -37,7 +37,30 @@ public class TurretUpgradeUI : MonoBehaviour
 
     [Header("Common Info")]
     public TMP_Text levelText;
-    public TMP_Text descriptionText; 
+    public TMP_Text descriptionText;
+
+    [Header("XP / Free Points Panel")]
+    [Tooltip("Parent panel for XP bar + free points text. Hidden entirely when no free points and no XP to show.")]
+    public GameObject freePointsPanel;
+    public TMP_Text freePointsText;
+    public Image xpFillBar;
+
+    [Header("Turret Info Panel")]
+    public Image turretIconImage;
+    [Tooltip("Parent transform for 3D turret mesh preview.")]
+    public Transform turretModelContainer;
+
+    private GameObject currentTurretModelInstance;
+
+    [Header("Bullet Info Panel")]
+    public GameObject bulletInfoPanel;
+    public TMP_Text bulletNameText;
+    public TMP_Text bulletDescriptionText;
+    public Image bulletIconImage;
+    [Tooltip("Parent transform for 3D bullet mesh preview.")]
+    public Transform bulletModelContainer;
+
+    private GameObject currentBulletModelInstance;
 
     // Accessors for other systems
     public bool HasTarget => targetModule != null;
@@ -48,9 +71,11 @@ public class TurretUpgradeUI : MonoBehaviour
     [System.Serializable]
     public class UpgradeRowReferences
     {
-        public GameObject rowObject; 
+        public GameObject rowObject;
         // public TMP_Text valueText; // Removed as per request (redundant)
         public TMP_Text costText;
+        [Tooltip("Separate TMP for showing the discounted price ($0) when stat points are available")]
+        public TMP_Text discountText;
         public Button upgradeButton;
     }
 
@@ -290,6 +315,7 @@ public class TurretUpgradeUI : MonoBehaviour
         }
 
         targetModule = turret;
+        targetModule.AcknowledgeLevelUp();
         CalculateSmartOffset();
         // Tell PlacementSystem to position the selection ring
         if (PlacementSystem.Instance != null)
@@ -362,18 +388,20 @@ public class TurretUpgradeUI : MonoBehaviour
     public void Close()
     {
         uiPanel.SetActive(false);
+        ClearTurretModel();
+        ClearBulletModel();
         if (targetModule != null)
         {
             Turret t = targetModule.GetComponentInParent<Turret>();
             if (t != null) t.SetRangeVisual(false);
         }
         targetModule = null;
-        
+
         if (PlacementSystem.Instance != null)
         {
             PlacementSystem.Instance.HideSelectionRing();
         }
-        
+
         // NOTE: Do NOT clear turret selection here - player may have just
         // closed this panel via Shop.SelectTurret and needs the selection to place on a Node.
     }
@@ -386,10 +414,35 @@ public class TurretUpgradeUI : MonoBehaviour
 
         if (turretNameText != null) turretNameText.text = targetModule.turretName;
         // Simplified Level Text as requested: "Lv. 5" instead of "Lv. 5/100"
-        if (levelText != null) levelText.text = $"Lv. {targetModule.currentLevel}"; 
+        if (levelText != null) levelText.text = $"Lv. {targetModule.currentLevel}";
         if (descriptionText != null) descriptionText.text = targetModule.description;
-        
-        // Sell Button 
+
+        // Free points panel (hide entire panel including background when no points)
+        bool hasFreePoints = targetModule.freeUpgradePoints > 0;
+        if (freePointsPanel != null)
+            freePointsPanel.SetActive(hasFreePoints);
+
+        if (freePointsText != null)
+        {
+            freePointsText.gameObject.SetActive(hasFreePoints);
+            if (hasFreePoints)
+                freePointsText.text = $"Stat Points: {targetModule.freeUpgradePoints}";
+        }
+
+        // XP fill bar
+        if (xpFillBar != null)
+        {
+            int currentXP = targetModule.TotalExperience;
+            int currentLevelXP = targetModule.CurrentLevelXP;
+            int nextXP = targetModule.NextLevelXP;
+            float xpRange = nextXP - currentLevelXP;
+            xpFillBar.fillAmount = xpRange > 0 ? (currentXP - currentLevelXP) / xpRange : 0f;
+        }
+
+        // Turret Info Panel (3D model or icon)
+        RefreshTurretInfoPanel();
+
+        // Sell Button
         int sellValue = targetModule.GetSellValue();
         if (sellButtonText != null) sellButtonText.text = $"(+${sellValue})";
 
@@ -425,8 +478,11 @@ public class TurretUpgradeUI : MonoBehaviour
         SetRowVisibility(burstCountUpgrade, burstCountStat, isBurst, "Burst Count", stats.burstCount.ToString("F0"), targetModule.GetUpgradeCost(TurretBaseModule.StatType.BurstCount));
         
         // Beam Stuff
-        SetRowVisibility(shotIntervalUpgrade, shotIntervalStat, isBeam, "Interval", stats.beamShotInterval.ToString("F2"), targetModule.GetUpgradeCost(TurretBaseModule.StatType.BeamShotInterval)); 
+        SetRowVisibility(shotIntervalUpgrade, shotIntervalStat, isBeam, "Interval", stats.beamShotInterval.ToString("F2"), targetModule.GetUpgradeCost(TurretBaseModule.StatType.BeamShotInterval));
         SetRowVisibility(beamDurationUpgrade, beamDurationStat, isBeam, "Duration", stats.beamDuration.ToString("F1"), targetModule.GetUpgradeCost(TurretBaseModule.StatType.BeamDuration));
+
+        // Bullet Info Panel
+        RefreshBulletInfoPanel();
     }
 
     private void SetRowVisibility(UpgradeRowReferences upRow, StatDisplayReferences statRow, bool active, string label, string val, int cost)
@@ -447,13 +503,51 @@ public class TurretUpgradeUI : MonoBehaviour
     {
         if (row == null) return;
         if (row.rowObject != null) row.rowObject.SetActive(true);
-        // if (row.valueText != null) row.valueText.text = value; // Removed
-        if (row.costText != null) row.costText.text = $"${cost}";
-        
+
+        bool hasFreePoints = targetModule.freeUpgradePoints > 0;
+        bool capped = targetModule.currentLevel >= targetModule.maxLevel;
+
+        if (row.costText != null)
+        {
+            if (hasFreePoints)
+            {
+                // Crossed-out old price, dimmed via component alpha
+                row.costText.text = $"<s>${cost}</s>";
+                Color c = row.costText.color;
+                c.a = 0.5f;
+                row.costText.color = c;
+            }
+            else
+            {
+                row.costText.text = $"${cost}";
+                Color c = row.costText.color;
+                c.a = 1f;
+                row.costText.color = c;
+            }
+        }
+
+        // Separate discount text component (controlled in Inspector for font size etc.)
+        if (row.discountText != null)
+        {
+            if (hasFreePoints)
+            {
+                row.discountText.gameObject.SetActive(true);
+                row.discountText.text = "$0";
+            }
+            else
+            {
+                row.discountText.gameObject.SetActive(false);
+            }
+        }
+
         if (row.upgradeButton != null)
         {
-            bool capped = targetModule.currentLevel >= targetModule.maxLevel;
-            row.upgradeButton.interactable = !capped && PlayerStats.wallet >= cost;
+            if (capped)
+                row.upgradeButton.interactable = false;
+            else if (hasFreePoints)
+                row.upgradeButton.interactable = true;
+            else
+                row.upgradeButton.interactable = PlayerStats.wallet >= cost;
         }
     }
 
@@ -530,6 +624,116 @@ public class TurretUpgradeUI : MonoBehaviour
         breakdown += ")";
         
         return $"{finalVal:F1} {breakdown}";
+    }
+
+    // ─── Turret Info Panel Helpers ─────────────────────────────────────────
+
+    private void RefreshTurretInfoPanel()
+    {
+        var turretBP = targetModule.InstalledTurretBlueprint;
+        if (turretBP == null) return;
+
+        SetupTurretModel(turretBP);
+    }
+
+    private void SetupTurretModel(TurretBlueprintSO bp)
+    {
+        ClearTurretModel();
+
+        if (turretModelContainer != null && bp.displayMesh != null)
+        {
+            currentTurretModelInstance = Instantiate(bp.displayMesh, turretModelContainer);
+            currentTurretModelInstance.transform.localPosition = Vector3.zero;
+            currentTurretModelInstance.transform.localRotation = Quaternion.identity;
+
+            if (currentTurretModelInstance.GetComponent<ModelSpinner>() == null)
+                currentTurretModelInstance.AddComponent<ModelSpinner>();
+
+            SetLayerRecursively(currentTurretModelInstance, LayerMask.NameToLayer("GUI"));
+
+            if (turretIconImage != null) turretIconImage.enabled = false;
+        }
+        else
+        {
+            if (turretIconImage != null)
+            {
+                turretIconImage.enabled = true;
+                turretIconImage.sprite = bp.icon;
+            }
+        }
+    }
+
+    private void ClearTurretModel()
+    {
+        if (currentTurretModelInstance != null)
+        {
+            Destroy(currentTurretModelInstance);
+            currentTurretModelInstance = null;
+        }
+    }
+
+    // ─── Bullet Info Panel Helpers ──────────────────────────────────────────
+
+    private void RefreshBulletInfoPanel()
+    {
+        if (bulletInfoPanel == null) return;
+
+        var bulletBP = targetModule.InstalledBulletBlueprint;
+        if (bulletBP == null)
+        {
+            bulletInfoPanel.SetActive(false);
+            ClearBulletModel();
+            return;
+        }
+
+        bulletInfoPanel.SetActive(true);
+        if (bulletNameText != null) bulletNameText.text = bulletBP.bulletName;
+        if (bulletDescriptionText != null) bulletDescriptionText.text = bulletBP.description;
+        SetupBulletModel(bulletBP);
+    }
+
+    private void SetupBulletModel(BulletBlueprintSO bp)
+    {
+        ClearBulletModel();
+
+        if (bulletModelContainer != null && bp.displayMesh != null)
+        {
+            currentBulletModelInstance = Instantiate(bp.displayMesh, bulletModelContainer);
+            currentBulletModelInstance.transform.localPosition = Vector3.zero;
+            currentBulletModelInstance.transform.localRotation = Quaternion.identity;
+
+            if (currentBulletModelInstance.GetComponent<ModelSpinner>() == null)
+                currentBulletModelInstance.AddComponent<ModelSpinner>();
+
+            // Set layer recursively for world UI camera rendering
+            SetLayerRecursively(currentBulletModelInstance, LayerMask.NameToLayer("UI"));
+
+            if (bulletIconImage != null) bulletIconImage.enabled = false;
+        }
+        else
+        {
+            if (bulletIconImage != null)
+            {
+                bulletIconImage.enabled = true;
+                bulletIconImage.sprite = bp.icon;
+            }
+        }
+    }
+
+    private void ClearBulletModel()
+    {
+        if (currentBulletModelInstance != null)
+        {
+            Destroy(currentBulletModelInstance);
+            currentBulletModelInstance = null;
+        }
+    }
+
+    private void SetLayerRecursively(GameObject obj, int layer)
+    {
+        obj.layer = layer;
+        foreach (Transform child in obj.transform)
+            SetLayerRecursively(child.gameObject, layer);
     }
 }
 

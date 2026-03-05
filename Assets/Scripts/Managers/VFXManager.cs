@@ -29,9 +29,6 @@ public class VFXManager : MonoBehaviour
     /// <summary>
     /// Play an effect from the generic VFXRefSO library.
     /// </summary>
-    /// <param name="type">The category of effect to play</param>
-    /// <param name="position">World position</param>
-    /// <param name="normal">Surface normal (e.g. wall or ground normal to spawn dust away from it)</param>
     public void PlayEffect(VFXType type, Vector3 position, Vector3 normal = default)
     {
         if (vfxReferences == null) return;
@@ -39,7 +36,6 @@ public class VFXManager : MonoBehaviour
         GameObject[] prefabArray = GetPrefabArray(type);
         if (prefabArray == null || prefabArray.Length == 0) return;
 
-        // Pick a random variant
         GameObject selectedPrefab = prefabArray[Random.Range(0, prefabArray.Length)];
         if (selectedPrefab == null) return;
 
@@ -55,60 +51,97 @@ public class VFXManager : MonoBehaviour
         SpawnFromPool(prefab, position, normal);
     }
 
+    /// <summary>
+    /// Spawn a persistent (looping) effect that does NOT auto-return to pool.
+    /// Caller must call ReleasePersistentEffect() to return it.
+    /// Optionally parents to a transform so it follows the object.
+    /// </summary>
+    public GameObject SpawnPersistentEffect(VFXType type, Vector3 position, Transform parent = null)
+    {
+        if (vfxReferences == null) return null;
+
+        GameObject[] prefabArray = GetPrefabArray(type);
+        if (prefabArray == null || prefabArray.Length == 0) return null;
+
+        GameObject prefab = prefabArray[Random.Range(0, prefabArray.Length)];
+        if (prefab == null) return null;
+
+        var pool = GetOrCreatePool(prefab);
+        GameObject instance = pool.Get();
+        instance.transform.position = position;
+        instance.transform.rotation = Quaternion.identity;
+
+        if (parent != null)
+            instance.transform.SetParent(parent, true);
+
+        // Cancel auto-return so it stays alive until manually released
+        var returner = instance.GetComponent<PooledVFXReturner>();
+        if (returner != null) returner.CancelAutoReturn();
+
+        return instance;
+    }
+
+    /// <summary>
+    /// Manually return a persistent effect to the pool.
+    /// </summary>
+    public void ReleasePersistentEffect(GameObject instance)
+    {
+        if (instance == null) return;
+
+        // Unparent before releasing back to manager hierarchy
+        instance.transform.SetParent(transform, false);
+
+        var returner = instance.GetComponent<PooledVFXReturner>();
+        if (returner != null)
+            returner.ManualRelease();
+        else
+            instance.SetActive(false);
+    }
+
+    // ─── Internal ───────────────────────────────────────────────────────────
+
+    private ObjectPool<GameObject> GetOrCreatePool(GameObject prefab)
+    {
+        if (pools.TryGetValue(prefab, out var pool))
+            return pool;
+
+        pool = new ObjectPool<GameObject>(
+            createFunc: () =>
+            {
+                GameObject obj = Instantiate(prefab, transform);
+                var returner = obj.AddComponent<PooledVFXReturner>();
+                returner.Setup(pool);
+                return obj;
+            },
+            actionOnGet: (obj) =>
+            {
+                obj.SetActive(true);
+            },
+            actionOnRelease: (obj) =>
+            {
+                obj.SetActive(false);
+            },
+            actionOnDestroy: (obj) => Destroy(obj),
+            collectionCheck: false,
+            defaultCapacity: 20,
+            maxSize: 200
+        );
+
+        pools[prefab] = pool;
+        return pool;
+    }
+
     private void SpawnFromPool(GameObject prefab, Vector3 position, Vector3 normal)
     {
-        // 1. Get or Create the Pool for this specific Prefab
-        if (!pools.TryGetValue(prefab, out var pool))
-        {
-            // First time seeing this prefab -> Make a new pool for it
-            pool = new ObjectPool<GameObject>(
-                createFunc: () => 
-                {
-                    // Action when pool needs a brand new object
-                    GameObject obj = Instantiate(prefab, transform); // keep under VFXManager hierarchy
-                    // Attach AutoReturnToPool script
-                    var returner = obj.AddComponent<PooledVFXReturner>();
-                    returner.Setup(pool);
-                    return obj;
-                },
-                actionOnGet: (obj) => 
-                {
-                    // Action when pulling from pool
-                    obj.SetActive(true);
-                },
-                actionOnRelease: (obj) => 
-                {
-                    // Action when returning to pool
-                    obj.SetActive(false);
-                },
-                actionOnDestroy: (obj) => Destroy(obj),
-                collectionCheck: false, // Turn off for max performance in prod
-                defaultCapacity: 20,
-                maxSize: 200 // Prevent memory leaks if hundreds spawn at once
-            );
-            
-            pools[prefab] = pool;
-        }
-
-        // 2. Grab an instance from the pool
+        var pool = GetOrCreatePool(prefab);
         GameObject vfxInstance = pool.Get();
 
-        // 3. Set Position & Rotation
         vfxInstance.transform.position = position;
-        
+
         if (normal != default && normal.sqrMagnitude > 0.01f)
-        {
-            // Point the effect AWAY from the normal (e.g. blood splatters "out" from the flesh)
             vfxInstance.transform.rotation = Quaternion.LookRotation(normal);
-        }
         else
-        {
-            // Default random rotation for variety (good for explosions/poofs)
             vfxInstance.transform.rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
-        }
-        
-        // Note: The PooledVFXReturner script on the object will automatically return it 
-        // to this pool when its ParticleSystem finishes playing!
     }
 
     private GameObject[] GetPrefabArray(VFXType type)
@@ -119,13 +152,14 @@ public class VFXManager : MonoBehaviour
             VFXType.ShieldSpark     => vfxReferences.shieldSparks,
             VFXType.ShieldBreak     => vfxReferences.shieldBreaks,
             VFXType.GroundDust      => vfxReferences.groundDust,
-            VFXType.GenericExplosion=> vfxReferences.genericExplosions,
+            VFXType.GenericExplosion => vfxReferences.genericExplosions,
             VFXType.DefaultHit      => vfxReferences.defaultHits,
             VFXType.DeathPoof       => vfxReferences.deathPoofs,
             VFXType.ItemDisappear   => vfxReferences.itemDisappear,
             VFXType.ElectricStrike  => vfxReferences.electricStrike,
             VFXType.IceStrike       => vfxReferences.iceStrike,
             VFXType.ChunkExpand     => vfxReferences.chunkExpand,
+            VFXType.UpgradeReady    => vfxReferences.upgradeReady,
             _ => null
         };
     }
@@ -134,6 +168,7 @@ public class VFXManager : MonoBehaviour
 /// <summary>
 /// Helper script that sits on the pooled GameObjects.
 /// It waits for particle systems to finish, then automatically returns itself to the VFXManager's pool.
+/// For persistent/looping effects, CancelAutoReturn() prevents the auto-release.
 /// </summary>
 public class PooledVFXReturner : MonoBehaviour
 {
@@ -150,20 +185,11 @@ public class PooledVFXReturner : MonoBehaviour
     {
         if (mainPS != null)
         {
-            // Start listening for when particle system stops
-            var invokeObj = gameObject; // Capture closure
             float duration = mainPS.main.duration;
-            
-            // Wait slightly longer than duration to ensure particles are dead. 
-            // Better yet, use ParticleSystem's own checking if possible, or just a simple timer:
             Invoke(nameof(ReturnToPool), duration + 0.5f);
-            
-            // For more robust systems, you can check !mainPS.IsAlive(true), 
-            // but Invoke runs on the C++ side and is ultra fast for TD games.
         }
         else
         {
-            // If it's just a mesh/sprite with no particles, return it after a generic 2 seconds
             Invoke(nameof(ReturnToPool), 2f);
         }
     }
@@ -171,6 +197,20 @@ public class PooledVFXReturner : MonoBehaviour
     private void OnDisable()
     {
         CancelInvoke();
+    }
+
+    /// <summary>Cancel the auto-return timer. Used for persistent/looping effects.</summary>
+    public void CancelAutoReturn()
+    {
+        CancelInvoke();
+    }
+
+    /// <summary>Manually return this effect to its pool.</summary>
+    public void ManualRelease()
+    {
+        CancelInvoke();
+        if (parentPool != null && gameObject.activeSelf)
+            parentPool.Release(gameObject);
     }
 
     private void ReturnToPool()

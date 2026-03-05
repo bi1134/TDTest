@@ -36,6 +36,10 @@ public class VFXRefSO : ScriptableObject
     [Header("World Events")]
     [Tooltip("Effect played at the center of an expanding map chunk")]
     public GameObject[] chunkExpand;
+
+    [Header("Turret Indicators")]
+    [Tooltip("Looping effect on turrets with unacknowledged level-ups (set particle to Loop)")]
+    public GameObject[] upgradeReady;
 }
 
 public enum VFXType
@@ -50,5 +54,6 @@ public enum VFXType
     ItemDisappear,
     ElectricStrike,
     IceStrike,
-    ChunkExpand
+    ChunkExpand,
+    UpgradeReady
 }
